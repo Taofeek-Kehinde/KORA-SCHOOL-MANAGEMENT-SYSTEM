@@ -66,7 +66,6 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    // ✅ JUST USE THE TOKEN - NO DATABASE QUERY NEEDED
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -77,22 +76,43 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    // ✅ Set req.user from token directly
+    // ✅ CHECK DATABASE FIRST - User must exist
+    const { data: user, error } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('id', decoded.userId)
+      .maybeSingle();
+
+    if (!user) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'User not found. Account may have been deleted.'
+      });
+    }
+
+    if (!user.is_active) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Account is deactivated. Please contact support.'
+      });
+    }
+
+    // ✅ Set req.user from DATABASE (not token)
     req.user = {
-      id: decoded.userId,
-      adminId: decoded.userId,
-      email: decoded.email,
-      fullName: decoded.fullName || '',
-      phone: decoded.phone || '',
-      role: decoded.role,
-      schoolId: decoded.schoolId,
-      campusId: decoded.campusId || null,
-      studentId: decoded.studentId || null,
-      parentId: decoded.parentId || null,
-      isActive: true,
-      isVerified: true,
-      lastLogin: new Date(),
-      profilePicUrl: ''
+      id: user.id,
+      adminId: user.id,
+      email: user.email,
+      fullName: user.full_name,
+      phone: user.phone,
+      role: user.role,
+      schoolId: user.school_id,
+      campusId: user.campus_id,
+      studentId: user.student_id || null,
+      parentId: user.parent_id || null,
+      isActive: user.is_active,
+      isVerified: user.is_verified,
+      lastLogin: user.last_login,
+      profilePicUrl: user.profile_pic_url
     };
 
     next();
