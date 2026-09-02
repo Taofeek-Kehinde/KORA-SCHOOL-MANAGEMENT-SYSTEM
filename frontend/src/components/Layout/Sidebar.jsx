@@ -16,6 +16,10 @@ import {
    FaUserTie, 
   FaBuilding,
   FaClipboardList,
+  FaSearch,
+  FaFileUpload,
+  FaArrowRight,
+  FaExchangeAlt
 } from 'react-icons/fa';
 
 const Sidebar = ({ isOpen }) => {
@@ -42,10 +46,14 @@ const Sidebar = ({ isOpen }) => {
     { path: '/school/campuses', icon: FaSchool, label: 'Campuses' },
     { path: '/school/students', icon: FaUserGraduate, label: 'Students' },
     { path: '/school/student-registration', icon: FaUserGraduate, label: 'Register Student' }, 
+    { path: '/school/search', icon: FaSearch, label: 'Find Students' },
     { path: '/school/teachers', icon: FaChalkboardTeacher, label: 'Teachers' },
     { path: '/school/parents', icon: FaUsers, label: 'Parents' },
     { path: '/school/billing', icon: FaMoneyBillWave, label: 'Billing' },
+    { path: '/school/bulk-import', icon: FaFileUpload, label: 'Bulk Import' },
      { path: '/school/staff', icon: FaUserTie, label: 'Staff' },
+     { path: '/school/promotion', icon: FaArrowRight, label: 'Promotion' },
+     { path: '/school/transfer', icon: FaExchangeAlt, label: 'Transfer' },
   ];
 
   // =============================================

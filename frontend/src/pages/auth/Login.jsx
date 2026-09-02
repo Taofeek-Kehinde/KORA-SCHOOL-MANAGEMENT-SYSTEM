@@ -49,23 +49,33 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.email || !formData.password) {
-      toast.error('Please fill in all fields');
-      return;
-    }
+  e.preventDefault();
+  if (!formData.email || !formData.password) {
+    toast.error('Please fill in all fields');
+    return;
+  }
 
-    setLoading(true);
-    try {
-      await login(formData.email, formData.password);
-      toast.success('Login successful!');
+  setLoading(true);
+  try {
+    const user = await login(formData.email, formData.password);
+    toast.success('Login successful!');
+    
+    // Redirect based on role
+    if (user?.role === 'super_admin') {
+      navigate('/admin/dashboard');
+    } else if (user?.role === 'student') {
+      navigate('/student/dashboard');
+    } else if (user?.role === 'parent') {
+      navigate('/parent/dashboard');
+    } else {
       navigate('/dashboard');
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Login failed');
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Login failed');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);

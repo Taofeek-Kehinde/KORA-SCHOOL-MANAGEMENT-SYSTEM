@@ -106,7 +106,8 @@ export const AuthProvider = ({ children }) => {
       const userData = response.data.data;
       setUser({
         ...userData,
-        schoolId: userData.school_id || userData.schoolId || null
+        schoolId: userData.school_id || userData.schoolId || null,
+        studentId: userData.student_id || userData.studentId || null  // ← ADD THIS
       });
     } catch (error) {
       console.error('Fetch user error:', error);
@@ -130,7 +131,8 @@ export const AuthProvider = ({ children }) => {
       setToken(token);
       setUser({
         ...user,
-        schoolId: user.school_id || user.schoolId || null
+        schoolId: user.school_id || user.schoolId || null,
+        studentId: user.student_id || user.studentId || null  // ← ADD THIS
       });
       return response.data;
     } catch (error) {

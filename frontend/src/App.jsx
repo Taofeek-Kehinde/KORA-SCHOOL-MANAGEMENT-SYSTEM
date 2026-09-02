@@ -22,6 +22,12 @@ import Staff from './pages/SchoolAdmin/Staff';
 import Students from './pages/SchoolAdmin/Students';
 import Parents from './pages/SchoolAdmin/Parents';
 import StudentRegistration from './pages/SchoolAdmin/StudentRegistration';
+import StudentDashboard from './pages/StudentDashboard';
+import StudentSearch from './pages/SchoolAdmin/StudentSearch';
+import BulkImport from './pages/SchoolAdmin/BulkImport';
+import Promotion from './pages/SchoolAdmin/Promotion';
+import Transfer from './pages/SchoolAdmin/Transfer';
+
 const AppRoutes = () => {
   const { user, loading } = useAuth();
 
@@ -33,10 +39,13 @@ const AppRoutes = () => {
     );
   }
 
-
   const getDashboardPath = () => {
     if (!user) return '/login';
-    return user?.role === 'super_admin' ? '/admin/dashboard' : '/dashboard';
+    if (user?.role === 'super_admin') return '/admin/dashboard';
+    if (user?.role === 'school_admin') return '/dashboard';
+    if (user?.role === 'student') return '/student/dashboard';
+    if (user?.role === 'parent') return '/parent/dashboard';
+    return '/dashboard';
   };
 
   const dashboardPath = getDashboardPath();
@@ -73,7 +82,15 @@ const AppRoutes = () => {
         <Route path="school/teachers" element={<Teachers />} />
         <Route path="school/staff" element={<Staff />} />
         <Route path="school/parents" element={<Parents />} />
-        
+        <Route path="school/bulk-import" element={<BulkImport />} />
+        <Route path="school/promotion" element={<Promotion />} />
+        <Route path="school/transfer" element={<Transfer />} />
+
+
+        {/* Student Routes */}
+        <Route path="student/dashboard" element={<StudentDashboard />} />
+        <Route path="school/search" element={<StudentSearch />} />
+
         {/* Fallback */}
         <Route path="*" element={<Navigate to={dashboardPath} replace />} />
       </Route>

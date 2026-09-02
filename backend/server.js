@@ -11,11 +11,50 @@ const PORT = process.env.PORT || 5000;
 // =============================================
 // MIDDLEWARE
 // =============================================
-app.use(helmet());
+// =============================================
+// CORS CONFIGURATION - Production & Development
+// =============================================
+const allowedOrigins = [
+  // Development
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+  
+  // Production - Add your actual domains
+  'https://kora.com',
+  'https://www.kora.com',
+  'https://app.kora.com',
+  'https://admin.kora.com',
+  'https://schools.kora.com',
+  process.env.FRONTEND_URL, // From .env file
+].filter(Boolean); // Remove undefined/null values
+
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:5173'],
-  credentials: true
+  origin: function(origin, callback) {
+    // Allow requests with no origin (curl, mobile apps, Postman)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // For production, log the blocked origin
+    console.warn(`CORS: Blocked origin ${origin}`);
+    
+    // In development, allow all (for testing)
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
+
 app.use(morgan('dev'));
 app.use(compression());
 app.use(express.json({ limit: '50mb' }));
@@ -51,6 +90,13 @@ app.use('/api/parents', require('./src/routes/parentRoutes'));
 app.use('/api/system', require('./src/routes/systemHealthRoutes'));
 app.use('/api/notifications', require('./src/routes/notificationRoutes'));
 app.use('/api/student-registration', require('./src/routes/studentRegistrationRoutes'));
+app.use('/api/student-dashboard', require('./src/routes/studentDashboardRoutes'));
+app.use('/api/profile', require('./src/routes/profileRoutes'));
+app.use('/api/search', require('./src/routes/searchRoutes'));
+app.use('/api/bulk-import', require('./src/routes/bulkImportRoutes'));
+app.use('/api/promotion', require('./src/routes/promotionRoutes'));
+app.use('/api/transfer', require('./src/routes/transferRoutes'));
+
 
 // =============================================
 // 404 HANDLER

@@ -11,7 +11,6 @@ import {
   FaUserGraduate,
   FaEnvelope,
   FaPhone,
-  FaSearch,
   FaUsers,
 } from 'react-icons/fa';
 import StudentModal from './components/StudentModal';
@@ -20,7 +19,6 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 const Students = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -28,10 +26,10 @@ const Students = () => {
 
   // Fetch students
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['students', user?.schoolId, searchTerm],
+    queryKey: ['students', user?.schoolId],
     queryFn: async () => {
       const response = await api.get(`/students/schools/${user?.schoolId}/students`, {
-        params: { search: searchTerm || undefined, limit: 100 }
+        params: { limit: 100 }
       });
       return response.data;
     },
@@ -84,20 +82,6 @@ const Students = () => {
           >
             <FaPlus /> Add Student
           </button>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="bg-white rounded-xl shadow-md p-4 mb-6">
-        <div className="relative">
-          <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search students by name or admission number..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-kora-primary"
-          />
         </div>
       </div>
 

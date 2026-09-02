@@ -61,6 +61,8 @@ const StudentRegistration = () => {
     firstName: '',
     middleName: '',
     lastName: '',
+      studentEmail: '',      
+  studentPassword: '' ,   
     gender: 'male',
     dateOfBirth: '',
     nationality: 'Nigeria',
@@ -133,12 +135,42 @@ const StudentRegistration = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const normalizeParent = (parent) => ({
+    id: parent?.id ?? parent?.parent_id ?? `${(parent?.firstName || parent?.first_name || 'parent')}-${(parent?.phone || parent?.last_name || Date.now())}-${Math.random()}`,
+    firstName: parent?.firstName ?? parent?.first_name ?? '',
+    lastName: parent?.lastName ?? parent?.last_name ?? '',
+    email: parent?.email ?? '',
+    phone: parent?.phone ?? '',
+    relationship: parent?.relationship ?? 'guardian',
+    address: parent?.address ?? '',
+    occupation: parent?.occupation ?? '',
+    employer: parent?.employer ?? '',
+    isPrimaryContact: Boolean(parent?.isPrimaryContact ?? parent?.is_primary_contact ?? false),
+  });
+
+  const getParentKey = (parent) => {
+    const normalized = normalizeParent(parent);
+    if (normalized.id) return `id:${normalized.id}`;
+    return `name:${normalized.firstName}:${normalized.lastName}:${normalized.phone}`;
+  };
+
   const handleAddParent = () => {
     if (!newParent.firstName || !newParent.lastName || !newParent.phone) {
       toast.error('Please fill in parent name and phone');
       return;
     }
-    setParents([...parents, { ...newParent, id: Date.now() }]);
+
+    const parentToAdd = normalizeParent({
+      ...newParent,
+      id: `new-${Date.now()}-${Math.random()}`
+    });
+
+    setParents(prev => {
+      const exists = prev.some(p => getParentKey(p) === getParentKey(parentToAdd));
+      if (exists) return prev;
+      return [...prev, parentToAdd];
+    });
+
     setNewParent({
       firstName: '',
       lastName: '',
@@ -249,16 +281,19 @@ const StudentRegistration = () => {
     const submitData = {
       ...formData,
       dateOfBirth: dobISO,
+       studentEmail: formData.studentEmail,    // ← ADD THIS
+  studentPassword: formData.studentPassword,  // ← ADD THIS
       parents: parents.map(p => ({
-        firstName: p.firstName,
-        lastName: p.lastName,
-        email: p.email,
-        phone: p.phone,
-        relationship: p.relationship,
-        address: p.address,
-        occupation: p.occupation,
-        employer: p.employer,
-        isPrimaryContact: p.isPrimaryContact
+        id: p.id || null,
+        firstName: p.firstName || p.first_name || '',
+        lastName: p.lastName || p.last_name || '',
+        email: p.email || '',
+        phone: p.phone || '',
+        relationship: p.relationship || 'guardian',
+        address: p.address || '',
+        occupation: p.occupation || '',
+        employer: p.employer || '',
+        isPrimaryContact: !!p.isPrimaryContact,
       })),
       // documents will be uploaded separately after creating the student
     };
@@ -388,6 +423,36 @@ const StudentRegistration = () => {
             <option value="other">Other</option>
           </select>
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Student Email (for login)
+    </label>
+    <input
+      type="email"
+      name="studentEmail"
+      value={formData.studentEmail}
+      onChange={handleChange}
+      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-kora-primary"
+      placeholder="student@example.com"
+    />
+  </div>
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Student Password (for login)
+    </label>
+    <input
+      type="text"
+      name="studentPassword"
+      value={formData.studentPassword}
+      onChange={handleChange}
+      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-kora-primary"
+      placeholder="Temporary password"
+    />
+  </div>
+</div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
           <input
@@ -807,13 +872,20 @@ const StudentRegistration = () => {
               <label key={parent.id} className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={parents.some(p => p.id === parent.id)}
+                  checked={parents.some(p => getParentKey(p) === getParentKey(parent))}
                   onChange={() => {
-                    if (parents.some(p => p.id === parent.id)) {
-                      setParents(parents.filter(p => p.id !== parent.id));
-                    } else {
-                      setParents([...parents, { ...parent, id: parent.id }]);
-                    }
+                    const selectedParent = normalizeParent(parent);
+
+                    setParents(prev => {
+                      const matchKey = getParentKey(selectedParent);
+                      const exists = prev.some(p => getParentKey(p) === matchKey);
+
+                      if (exists) {
+                        return prev.filter(p => getParentKey(p) !== matchKey);
+                      }
+
+                      return [...prev, selectedParent];
+                    });
                   }}
                   className="w-4 h-4 text-kora-primary rounded border-gray-300 focus:ring-kora-primary"
                 />

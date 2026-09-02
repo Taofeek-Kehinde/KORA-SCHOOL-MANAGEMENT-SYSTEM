@@ -65,7 +65,8 @@ class AuthController {
           userId: user.id,
           email: user.email,
           role: user.role,
-          schoolId: user.school_id
+          schoolId: user.school_id,
+          studentId: user.student_id
         },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRE || '7d' }
@@ -149,7 +150,8 @@ class AuthController {
           userId: user.id,
           email: user.email,
           role: user.role,
-          schoolId: user.school_id
+          schoolId: user.school_id,
+          studentId: user.student_id
         },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRE || '7d' }
@@ -165,6 +167,7 @@ class AuthController {
             fullName: user.full_name,
             role: user.role,
             schoolId: user.school_id,
+            studentId: user.student_id,
             isVerified: user.is_verified
           },
           token
@@ -179,6 +182,41 @@ class AuthController {
       });
     }
   }
+
+
+  // Add this method if it doesn't exist
+async getMe(req, res) {
+  try {
+    const user = req.user;
+    
+    // Get user with student_id
+    const { data: userData } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        id: userData.id,
+        email: userData.email,
+        fullName: userData.full_name,
+        role: userData.role,
+        schoolId: userData.school_id,
+        studentId: userData.student_id,  // ← Make sure this is returned
+        isVerified: userData.is_verified
+      }
+    });
+  } catch (error) {
+    console.error('Get Me Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to get user',
+      error: error.message
+    });
+  }
+}
 
   // =============================================
   // GET PROFILE
@@ -505,7 +543,8 @@ class AuthController {
           userId: user.id,
           email: user.email,
           role: user.role,
-          schoolId: user.school_id
+          schoolId: user.school_id,
+          studentId: user.student_id
         },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRE || '7d' }

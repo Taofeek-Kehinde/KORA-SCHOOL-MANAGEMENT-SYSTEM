@@ -219,60 +219,94 @@ class ParentController {
   }
 
   // =============================================
-  // UPDATE PARENT
-  // =============================================
-  async updateParent(req, res) {
-    try {
-      const { schoolId, parentId } = req.params;
-      const { firstName, lastName, email, phone, relationship, isActive } = req.body;
-      const { adminId } = req.user;
+// UPDATE PARENT
+// =============================================
+async updateParent(req, res) {
+  try {
+    const { schoolId, parentId } = req.params;
+    const { firstName, lastName, email, phone, relationship, isActive, studentIds } = req.body;
+    const { adminId } = req.user;
 
-      const updateData = {};
-      if (firstName !== undefined) updateData.first_name = firstName;
-      if (lastName !== undefined) updateData.last_name = lastName;
-      if (email !== undefined) updateData.email = email;
-      if (phone !== undefined) updateData.phone = phone;
-      if (relationship !== undefined) updateData.relationship = relationship;
-      if (isActive !== undefined) updateData.is_active = isActive;
-      updateData.updated_at = new Date();
+    const updateData = {};
+    if (firstName !== undefined) updateData.first_name = firstName;
+    if (lastName !== undefined) updateData.last_name = lastName;
+    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
+    if (relationship !== undefined) updateData.relationship = relationship;
+    if (isActive !== undefined) updateData.is_active = isActive;
+    updateData.updated_at = new Date();
 
-      const { data: parent, error } = await supabaseAdmin
-        .from('parents')
-        .update(updateData)
-        .eq('id', parentId)
-        .eq('school_id', schoolId)
-        .select()
-        .single();
+    const { data: parent, error } = await supabaseAdmin
+      .from('parents')
+      .update(updateData)
+      .eq('id', parentId)
+      .eq('school_id', schoolId)
+      .select()
+      .single();
 
-      if (error) throw error;
+    if (error) throw error;
 
-      // Update user if exists
-      if (parent.user_id) {
-        await supabaseAdmin
-          .from('users')
-          .update({
-            email: email,
-            full_name: `${firstName} ${lastName}`,
-            phone: phone
-          })
-          .eq('id', parent.user_id);
-      }
-
-      res.status(200).json({
-        status: 'success',
-        message: 'Parent updated successfully',
-        data: parent
-      });
-    } catch (error) {
-      console.error('Update Parent Error:', error);
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to update parent',
-        error: error.message
-      });
+    // Update user if exists
+    if (parent.user_id) {
+      await supabaseAdmin
+        .from('users')
+        .update({
+          email: email,
+          full_name: `${firstName} ${lastName}`,
+          phone: phone
+        })
+        .eq('id', parent.user_id);
     }
-  }
 
+    // ← ADD THIS: Update student-parent links
+    if (studentIds) {
+      // Remove existing links
+      await supabaseAdmin
+        .from('student_parents')
+        .delete()
+        .eq('parent_id', parentId);
+
+      // Add new links
+      if (studentIds.length > 0) {
+        const parentLinks = studentIds.map(studentId => ({
+          student_id: studentId,
+          parent_id: parentId,
+          is_primary_contact: true,
+          created_at: new Date()
+        }));
+
+        await supabaseAdmin
+          .from('student_parents')
+          .insert(parentLinks);
+      }
+    }
+
+    // Create audit log
+    await supabaseAdmin
+      .from('audit_logs')
+      .insert({
+        school_id: schoolId,
+        user_id: adminId,
+        action: 'UPDATE_PARENT',
+        entity_type: 'parent',
+        entity_id: parentId,
+        new_values: updateData
+      });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Parent updated successfully',
+      data: parent
+    });
+  } catch (error) {
+    console.error('Update Parent Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to update parent',
+      error: error.message
+    });
+  }
+}
   // =============================================
   // DELETE PARENT
   // =============================================

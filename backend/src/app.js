@@ -86,6 +86,7 @@ const academicRoutes = require('./routes/academicRoutes');
 const campusRoutes = require('./routes/campusRoutes');
 const whiteLabelRoutes = require('./routes/whiteLabelRoutes');
 const profileRoutes = require('./routes/profileRoutes');
+const searchRoutes = require('./routes/searchRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/registration', registrationRoutes);
@@ -100,6 +101,7 @@ app.use('/api/academic', academicRoutes);
 app.use('/api/campuses', campusRoutes);
 app.use('/api/white-label', whiteLabelRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/search', searchRoutes);
 
 // =============================================
 // 404 HANDLER
