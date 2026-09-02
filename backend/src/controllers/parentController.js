@@ -1,7 +1,84 @@
 const { supabaseAdmin } = require('../config/supabase');
 const bcrypt = require('bcryptjs');
+const studentNotificationService = require('../services/studentNotificationService');
 
 class ParentController {
+  // =============================================
+  // GET MY CHILDREN
+  // =============================================
+  async getMyChildren(req, res) {
+    try {
+      const user = req.user;
+
+      if (!user || user.role !== 'parent') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'Access denied. Parent account required.'
+        });
+      }
+
+      const { data: parent, error: parentError } = await supabaseAdmin
+        .from('parents')
+        .select('id, school_id, first_name, last_name')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .single();
+
+      if (parentError || !parent) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Parent profile not found.'
+        });
+      }
+
+      const { data: links, error: linksError } = await supabaseAdmin
+        .from('student_parents')
+        .select(`
+          student_id,
+          is_primary_contact,
+          students!student_id(
+            id,
+            first_name,
+            last_name,
+            admission_number,
+            date_of_birth,
+            gender,
+            class_id,
+            classes!class_id(id, name),
+            campuses!campus_id(id, name)
+          )
+        `)
+        .eq('parent_id', parent.id)
+        .order('created_at', { ascending: false });
+
+      if (linksError) throw linksError;
+
+      const children = (links || []).map(link => ({
+        id: link.students?.id,
+        first_name: link.students?.first_name,
+        last_name: link.students?.last_name,
+        admission_number: link.students?.admission_number,
+        date_of_birth: link.students?.date_of_birth,
+        gender: link.students?.gender,
+        class: link.students?.classes || null,
+        campus: link.students?.campuses || null,
+        is_primary_contact: link.is_primary_contact
+      })).filter(child => child.id);
+
+      res.status(200).json({
+        status: 'success',
+        data: children
+      });
+    } catch (error) {
+      console.error('Get My Children Error:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to fetch children',
+        error: error.message
+      });
+    }
+  }
+
   // =============================================
   // GET ALL PARENTS
   // =============================================
@@ -185,6 +262,29 @@ class ParentController {
         await supabaseAdmin
           .from('student_parents')
           .insert(parentLinks);
+
+        for (const studentId of studentIds) {
+          const { data: student } = await supabaseAdmin
+            .from('students')
+            .select('id, first_name, last_name, admission_number')
+            .eq('id', studentId)
+            .single();
+
+          if (student) {
+            const { data: school } = await supabaseAdmin
+              .from('schools')
+              .select('name')
+              .eq('id', schoolId)
+              .single();
+
+            await studentNotificationService.notifyStudentAdmitted({
+              schoolId,
+              school,
+              student,
+              adminName: req.user?.fullName || 'School Administrator'
+            });
+          }
+        }
       }
 
       // Create audit log

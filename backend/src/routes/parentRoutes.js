@@ -9,6 +9,7 @@ router.use(authenticate);
 // =============================================
 // PARENT MANAGEMENT
 // =============================================
+router.get('/me/children', parentController.getMyChildren);
 router.get('/schools/:schoolId/parents', authorize('school_admin', 'super_admin'), parentController.getParents);
 router.get('/schools/:schoolId/parents/:parentId', authorize('school_admin', 'super_admin'), parentController.getParentById);
 router.post('/schools/:schoolId/parents', authorize('school_admin', 'super_admin'), parentController.createParent);

@@ -1,4 +1,6 @@
 const { supabaseAdmin } = require('../config/supabase');
+const studentNotificationService = require('../services/studentNotificationService');
+
 
 class StudentController {
   // =============================================
@@ -175,6 +177,19 @@ class StudentController {
         await supabaseAdmin
           .from('student_parents')
           .insert(parentLinks);
+
+        const { data: school } = await supabaseAdmin
+          .from('schools')
+          .select('name')
+          .eq('id', schoolId)
+          .single();
+
+        await studentNotificationService.notifyStudentAdmitted({
+          schoolId,
+          school,
+          student,
+          adminName: req.user?.fullName || 'School Administrator'
+        });
       }
 
       // Create audit log
@@ -243,6 +258,25 @@ class StudentController {
       if (isActive !== undefined) updateData.is_active = isActive;
       updateData.updated_at = new Date();
 
+      // After student is updated
+try {
+  const { data: school } = await supabaseAdmin
+    .from('schools')
+    .select('name')
+    .eq('id', schoolId)
+    .single();
+
+  const changedFields = Object.keys(mappedData).join(', ');
+
+  await studentNotificationService.notifyProfileUpdated({
+    schoolId,
+    school,
+    student,
+    changes: `Updated fields: ${changedFields}`
+  });
+} catch (notifError) {
+  console.error('Send profile update notification error:', notifError);
+}
       const { data: student, error } = await supabaseAdmin
         .from('students')
         .update(updateData)

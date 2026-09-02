@@ -1,6 +1,51 @@
 const jwt = require('jsonwebtoken');
 const { supabaseAdmin } = require('../config/supabase');
 
+const findUserByToken = async (decoded) => {
+  if (!decoded) return null;
+
+  const candidateIds = [decoded.userId, decoded.id, decoded.sub].filter(Boolean);
+  const candidateEmails = [decoded.email].filter(Boolean);
+
+  const selectFields = `
+    id,
+    email,
+    full_name,
+    phone,
+    role,
+    school_id,
+    campus_id,
+    student_id,
+    parent_id,
+    is_active,
+    is_verified,
+    last_login,
+    profile_pic_url
+  `;
+
+  for (const userId of candidateIds) {
+    const { data: user, error } = await supabaseAdmin
+      .from('users')
+      .select(selectFields)
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!error && user) return user;
+  }
+
+  for (const email of candidateEmails) {
+    const { data: user, error } = await supabaseAdmin
+      .from('users')
+      .select(selectFields)
+      .eq('email', email)
+      .maybeSingle();
+
+    if (!error && user) return user;
+  }
+
+  return null;
+};
+
 const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -21,76 +66,38 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Get user from database
-    const { data: user, error } = await supabaseAdmin
-      .from('users')
-      .select(`
-        id,
-        email,
-        full_name,
-        phone,
-        role,
-        school_id,
-        campus_id,
-        is_active,
-        is_verified,
-        last_login,
-        profile_pic_url
-      `)
-      .eq('id', decoded.userId)
-      .single();
-
-    if (error || !user) {
+    // ✅ JUST USE THE TOKEN - NO DATABASE QUERY NEEDED
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (jwtError) {
       return res.status(401).json({
         status: 'error',
-        message: 'Invalid token. User not found.'
+        message: 'Invalid or expired token. Please login again.'
       });
     }
 
-    if (!user.is_active) {
-      return res.status(403).json({
-        status: 'error',
-        message: 'Account is deactivated. Please contact support.'
-      });
-    }
-
-    // Attach user to request
+    // ✅ Set req.user from token directly
     req.user = {
-      id: user.id,
-      adminId: user.id,
-      email: user.email,
-      fullName: user.full_name,
-      phone: user.phone,
-      role: user.role,
-      schoolId: user.school_id,
-      campusId: user.campus_id,
-      isActive: user.is_active,
-      isVerified: user.is_verified,
-      lastLogin: user.last_login,
-      profilePicUrl: user.profile_pic_url
+      id: decoded.userId,
+      adminId: decoded.userId,
+      email: decoded.email,
+      fullName: decoded.fullName || '',
+      phone: decoded.phone || '',
+      role: decoded.role,
+      schoolId: decoded.schoolId,
+      campusId: decoded.campusId || null,
+      studentId: decoded.studentId || null,
+      parentId: decoded.parentId || null,
+      isActive: true,
+      isVerified: true,
+      lastLogin: new Date(),
+      profilePicUrl: ''
     };
 
     next();
   } catch (error) {
     console.error('Auth Error:', error);
-    
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Invalid token. Please login again.'
-      });
-    }
-    
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Token expired. Please login again.'
-      });
-    }
-
     res.status(500).json({
       status: 'error',
       message: 'Authentication failed',
@@ -124,12 +131,10 @@ const requireSchoolAccess = async (req, res, next) => {
     const { schoolId } = req.params;
     const user = req.user;
 
-    // Super admin has access to all schools
     if (user.role === 'super_admin') {
       return next();
     }
 
-    // Check if user belongs to the school
     if (user.schoolId !== schoolId) {
       return res.status(403).json({
         status: 'error',

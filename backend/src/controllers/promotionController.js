@@ -1,5 +1,5 @@
 const { supabaseAdmin } = require('../config/supabase');
-
+const studentNotificationService = require('../services/studentNotificationService');
 class PromotionController {
   // =============================================
   // GET PROMOTION DATA
@@ -159,6 +159,39 @@ class PromotionController {
               .single();
 
             if (repeatError) throw repeatError;
+
+            // After students are promoted
+for (const promotedStudent of results.promoted) {
+  try {
+    const { data: school } = await supabaseAdmin
+      .from('schools')
+      .select('name')
+      .eq('id', schoolId)
+      .single();
+
+    const { data: fromClass } = await supabaseAdmin
+      .from('classes')
+      .select('name')
+      .eq('id', fromClassId)
+      .single();
+
+    const { data: toClass } = await supabaseAdmin
+      .from('classes')
+      .select('name')
+      .eq('id', toClassId)
+      .single();
+
+    await studentNotificationService.notifyStudentPromoted({
+      schoolId,
+      school,
+      student: promotedStudent,
+      fromClass: fromClass?.name || 'Previous Class',
+      toClass: toClass?.name || 'New Class'
+    });
+  } catch (notifError) {
+    console.error('Send promotion notification error:', notifError);
+  }
+}
 
             // Record promotion history
             await supabaseAdmin

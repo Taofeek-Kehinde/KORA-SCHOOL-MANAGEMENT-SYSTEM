@@ -12,7 +12,7 @@ class StaffController {
         .from('staff')
         .select(`
           *,
-          users!user_id(email, full_name, phone)
+          users!user_id(email, full_name, phone, role)
         `)
         .eq('school_id', schoolId)
         .eq('is_active', true)
@@ -47,7 +47,8 @@ class StaffController {
         lastName,
         phone,
         position,
-        department
+        department,
+        role = 'staff'
       } = req.body;
       const { adminId } = req.user;
 
@@ -57,6 +58,8 @@ class StaffController {
           message: 'Email, password, first name, last name, and position are required'
         });
       }
+
+      const normalizedRole = ['staff', 'accountant'].includes(role) ? role : 'staff';
 
       // Check if user exists
       const { data: existingUser } = await supabaseAdmin
@@ -83,7 +86,7 @@ class StaffController {
           password_hash: hashedPassword,
           full_name: `${firstName} ${lastName}`,
           phone: phone || '',
-          role: 'staff',
+          role: normalizedRole,
           school_id: schoolId,
           is_active: true,
           is_verified: true,
@@ -158,7 +161,7 @@ class StaffController {
   async updateStaff(req, res) {
     try {
       const { schoolId, staffId } = req.params;
-      const { firstName, lastName, phone, position, department, isActive } = req.body;
+      const { firstName, lastName, phone, position, department, isActive, role } = req.body;
       const { adminId } = req.user;
 
       const updateData = {};
@@ -169,6 +172,13 @@ class StaffController {
       if (department !== undefined) updateData.department = department;
       if (isActive !== undefined) updateData.is_active = isActive;
       updateData.updated_at = new Date();
+
+      if (role && ['staff', 'accountant'].includes(role)) {
+        await supabaseAdmin
+          .from('users')
+          .update({ role, updated_at: new Date() })
+          .eq('id', (await supabaseAdmin.from('staff').select('user_id').eq('id', staffId).eq('school_id', schoolId).single()).data.user_id);
+      }
 
       const { data: staff, error } = await supabaseAdmin
         .from('staff')

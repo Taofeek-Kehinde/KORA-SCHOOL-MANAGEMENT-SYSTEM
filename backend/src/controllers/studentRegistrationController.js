@@ -1,6 +1,8 @@
 const { supabaseAdmin } = require('../config/supabase');
 const storageService = require('../services/storageService');
 const bcrypt = require('bcryptjs');
+const studentNotificationService = require('../services/studentNotificationService');
+
 
 class StudentRegistrationController {
   constructor() {
@@ -252,6 +254,25 @@ class StudentRegistrationController {
 
     // Calculate age
     const age = this.calculateAge(dateOfBirth);
+
+    // After student is created and parents are linked
+// Send notification to parents
+try {
+  const { data: school } = await supabaseAdmin
+    .from('schools')
+    .select('name')
+    .eq('id', schoolId)
+    .single();
+
+  await studentNotificationService.notifyStudentAdmitted({
+    schoolId,
+    school,
+    student,
+    adminName: 'School Admin'
+  });
+} catch (notifError) {
+  console.error('Send admission notification error:', notifError);
+}
 
     // =============================================
     // STEP 1: CREATE STUDENT

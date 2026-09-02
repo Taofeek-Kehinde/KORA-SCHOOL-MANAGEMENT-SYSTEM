@@ -11,52 +11,20 @@ const PORT = process.env.PORT || 5000;
 // =============================================
 // MIDDLEWARE
 // =============================================
-// =============================================
-// CORS CONFIGURATION - Production & Development
-// =============================================
-const allowedOrigins = [
-  // Development
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:3000',
-  
-  // Production - Add your actual domains
-  'https://kora.com',
-  'https://www.kora.com',
-  'https://app.kora.com',
-  'https://admin.kora.com',
-  'https://schools.kora.com',
-  process.env.FRONTEND_URL, // From .env file
-].filter(Boolean); // Remove undefined/null values
 
-app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (curl, mobile apps, Postman)
-    if (!origin) return callback(null, true);
-    
-    // Check if origin is in allowed list
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    
-    // For production, log the blocked origin
-    console.warn(`CORS: Blocked origin ${origin}`);
-    
-    // In development, allow all (for testing)
-    if (process.env.NODE_ENV !== 'production') {
-      return callback(null, true);
-    }
-    
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
-}));
+// ✅ SIMPLE CORS - Allow all origins (works for dev & production)
+app.use(cors());
 
+// ✅ Add security headers
+app.use(helmet());
+
+// ✅ Logging
 app.use(morgan('dev'));
+
+// ✅ Compression
 app.use(compression());
+
+// ✅ Body parsing
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -79,7 +47,7 @@ app.use('/api/registration', require('./src/routes/registrationRoutes'));
 app.use('/api/admin', require('./src/routes/adminRoutes'));
 app.use('/api/campuses', require('./src/routes/campusRoutes'));
 app.use('/api/ai', require('./src/routes/aiRoutes'));
-app.use('/api/academic', require('./src/routes/academicRoutes'));  
+app.use('/api/academic', require('./src/routes/academicRoutes'));
 app.use('/api/dashboard', require('./src/routes/dashboardRoutes'));
 app.use('/api/white-label', require('./src/routes/whiteLabelRoutes'));
 app.use('/api/audit', require('./src/routes/auditRoutes'));
@@ -96,7 +64,11 @@ app.use('/api/search', require('./src/routes/searchRoutes'));
 app.use('/api/bulk-import', require('./src/routes/bulkImportRoutes'));
 app.use('/api/promotion', require('./src/routes/promotionRoutes'));
 app.use('/api/transfer', require('./src/routes/transferRoutes'));
-
+app.use('/api/withdrawal', require('./src/routes/withdrawalRoutes'));
+app.use('/api/graduation', require('./src/routes/graduationRoutes'));
+app.use('/api/id-card', require('./src/routes/idCardRoutes'));
+app.use('/api/student-notifications', require('./src/routes/studentNotificationRoutes'));
+app.use('/api/accountant', require('./src/routes/accountantRoutes'));
 
 // =============================================
 // 404 HANDLER

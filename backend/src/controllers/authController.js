@@ -118,7 +118,7 @@ class AuthController {
       if (userError || !user) {
         return res.status(401).json({
           status: 'error',
-          message: 'Invalid email or password'
+          message: 'Email or password is incorrect'
         });
       }
 
@@ -133,7 +133,7 @@ class AuthController {
       if (!isValidPassword) {
         return res.status(401).json({
           status: 'error',
-          message: 'Invalid email or password'
+          message: 'Email or password is incorrect'
         });
       }
 
@@ -185,16 +185,24 @@ class AuthController {
 
 
   // Add this method if it doesn't exist
+
 async getMe(req, res) {
   try {
     const user = req.user;
     
-    // Get user with student_id
-    const { data: userData } = await supabaseAdmin
+    // Get user from database
+    const { data: userData, error } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', user.id)
       .single();
+
+    if (error || !userData) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+      });
+    }
 
     res.status(200).json({
       status: 'success',
@@ -202,10 +210,15 @@ async getMe(req, res) {
         id: userData.id,
         email: userData.email,
         fullName: userData.full_name,
+        phone: userData.phone,
         role: userData.role,
         schoolId: userData.school_id,
-        studentId: userData.student_id,  // ← Make sure this is returned
-        isVerified: userData.is_verified
+        studentId: userData.student_id,
+        campusId: userData.campus_id,
+        isActive: userData.is_active,
+        isVerified: userData.is_verified,
+        lastLogin: userData.last_login,
+        profilePicUrl: userData.profile_pic_url
       }
     });
   } catch (error) {
@@ -217,16 +230,33 @@ async getMe(req, res) {
     });
   }
 }
-
   // =============================================
   // GET PROFILE
   // =============================================
   async getProfile(req, res) {
     try {
       const user = req.user;
+      let parentId = null;
+
+      if (user.role === 'parent') {
+        const { data: parent, error: parentError } = await supabaseAdmin
+          .from('parents')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .single();
+
+        if (!parentError && parent) {
+          parentId = parent.id;
+        }
+      }
+
       res.status(200).json({
         status: 'success',
-        data: user
+        data: {
+          ...user,
+          parentId
+        }
       });
     } catch (error) {
       console.error('Get Profile Error:', error);

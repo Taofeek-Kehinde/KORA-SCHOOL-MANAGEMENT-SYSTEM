@@ -1,5 +1,5 @@
 const { supabaseAdmin } = require('../config/supabase');
-
+const studentNotificationService = require('../services/studentNotificationService');
 class TransferController {
   // =============================================
   // GET TRANSFER DATA
@@ -148,6 +148,39 @@ class TransferController {
         transferRecord.to_campus_id = toCampusId;
         transferRecord.details = `Campus transfer`;
       }
+
+      // After transfer is complete
+try {
+  const { data: school } = await supabaseAdmin
+    .from('schools')
+    .select('name')
+    .eq('id', schoolId)
+    .single();
+
+  const { data: fromClass } = await supabaseAdmin
+    .from('classes')
+    .select('name')
+    .eq('id', fromClassId || currentStudent.class_id)
+    .single();
+
+  const { data: toClass } = await supabaseAdmin
+    .from('classes')
+    .select('name')
+    .eq('id', toClassId)
+    .single();
+
+  if (transferType === 'class') {
+    await studentNotificationService.notifyClassChange({
+      schoolId,
+      school,
+      student: updatedStudent,
+      fromClass: fromClass?.name || 'Previous Class',
+      toClass: toClass?.name || 'New Class'
+    });
+  }
+} catch (notifError) {
+  console.error('Send transfer notification error:', notifError);
+}
 
       // Update student
       const { data: updatedStudent, error: updateError } = await supabaseAdmin
