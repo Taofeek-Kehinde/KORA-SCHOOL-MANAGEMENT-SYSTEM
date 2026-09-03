@@ -19,7 +19,10 @@ import {
   FaSearch,
   FaFileUpload,
   FaArrowRight,
-  FaExchangeAlt
+  FaExchangeAlt,
+  FaGraduationCap,
+  FaIdCard,
+  FaBell
 } from 'react-icons/fa';
 
 const Sidebar = ({ isOpen }) => {
@@ -52,8 +55,12 @@ const Sidebar = ({ isOpen }) => {
     { path: '/school/billing', icon: FaMoneyBillWave, label: 'Billing' },
     { path: '/school/bulk-import', icon: FaFileUpload, label: 'Bulk Import' },
      { path: '/school/staff', icon: FaUserTie, label: 'Staff' },
+     { path: '/school/accountants', icon: FaMoneyBillWave, label: 'Accountants' },
      { path: '/school/promotion', icon: FaArrowRight, label: 'Promotion' },
      { path: '/school/transfer', icon: FaExchangeAlt, label: 'Transfer' },
+     { path: '/school/withdrawal', icon: FaUserGraduate, label: 'Withdrawal' },
+     { path: '/school/graduation', icon: FaGraduationCap, label: 'Graduation' },
+     { path: '/school/id-card', icon: FaIdCard, label: 'ID Card' }
   ];
 
   // =============================================
@@ -61,8 +68,9 @@ const Sidebar = ({ isOpen }) => {
   // =============================================
   const teacherMenu = [
     { path: '/teacher/dashboard', icon: FaHome, label: 'Dashboard' },
+    { path: '/teacher/classes', icon: FaChalkboardTeacher, label: 'Classes' },
     { path: '/teacher/attendance', icon: FaCalendarAlt, label: 'Attendance' },
-    { path: '/teacher/grades', icon: FaChartBar, label: 'Grades' },
+    { path: '/teacher/grades', icon: FaChartBar, label: 'Assessments' },
   ];
 
   // =============================================
@@ -70,9 +78,14 @@ const Sidebar = ({ isOpen }) => {
   // =============================================
   const parentMenu = [
     { path: '/parent/dashboard', icon: FaHome, label: 'Dashboard' },
-    { path: '/parent/children', icon: FaUsers, label: 'My Children' },
     { path: '/parent/payments', icon: FaMoneyBillWave, label: 'Payments' },
   ];
+
+  const accountantMenu = [
+  { path: '/accountant/dashboard', icon: FaHome, label: 'Dashboard' },
+  { path: '/accountant/fees', icon: FaMoneyBillWave, label: 'Fees' },
+  { path: '/accountant/reports', icon: FaChartBar, label: 'Reports' },
+];
 
   // =============================================
   // SELECT MENU BASED ON ROLE
@@ -89,6 +102,8 @@ const Sidebar = ({ isOpen }) => {
         return teacherMenu;
       case 'parent':
         return parentMenu;
+        case 'accountant':
+  return accountantMenu;
       default:
         return [];
     }

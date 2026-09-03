@@ -17,7 +17,7 @@ import {
 import StaffModal from './components/StaffModal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 
-const Staff = () => {
+const Staff = ({ roleFilter = 'all' }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,13 +51,22 @@ const Staff = () => {
     }
   });
 
-  const staff = data?.data || [];
+  const staff = (data?.data || []).filter((item) => {
+    const itemRole = item.users?.role || item.role || 'staff';
+    if (roleFilter === 'all') return true;
+    return itemRole === roleFilter;
+  });
 
-  const filteredStaff = staff.filter(item =>
-    item.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.position.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredStaff = staff.filter(item => {
+    const itemRole = item.users?.role || item.role || 'staff';
+    const text = `${item.first_name || ''} ${item.last_name || ''} ${item.position || ''} ${itemRole || ''}`.toLowerCase();
+    return text.includes(searchTerm.toLowerCase());
+  });
+
+  const isAccountantPage = roleFilter === 'accountant';
+  const pageTitle = isAccountantPage ? 'Accountants' : 'Staff';
+  const pageSubtitle = isAccountantPage ? 'Manage school accountants and finance access' : 'Manage all non-teaching staff';
+  const addButtonLabel = isAccountantPage ? 'Add Accountant' : 'Add Staff';
 
   if (isLoading) {
     return (
@@ -71,8 +80,8 @@ const Staff = () => {
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Staff</h1>
-          <p className="text-gray-500 mt-1">Manage all non-teaching staff</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">{pageTitle}</h1>
+          <p className="text-gray-500 mt-1">{pageSubtitle}</p>
         </div>
         <div className="flex gap-3 mt-3 md:mt-0">
           <button
@@ -82,7 +91,7 @@ const Staff = () => {
             }}
             className="px-4 py-2 bg-kora-primary text-white rounded-lg hover:bg-kora-secondary flex items-center gap-2"
           >
-            <FaPlus /> Add Staff
+            <FaPlus /> {addButtonLabel}
           </button>
         </div>
       </div>
@@ -92,7 +101,7 @@ const Staff = () => {
           <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search staff..."
+            placeholder={isAccountantPage ? 'Search accountants...' : 'Search staff...'}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-kora-primary"
@@ -104,8 +113,8 @@ const Staff = () => {
         {filteredStaff.length === 0 ? (
           <div className="col-span-full bg-white rounded-xl shadow-md p-12 text-center">
             <FaUser className="text-6xl text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">No Staff Found</h3>
-            <p className="text-gray-500">Click "Add Staff" to get started</p>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">{isAccountantPage ? 'No Accountants Found' : 'No Staff Found'}</h3>
+            <p className="text-gray-500">Click "{addButtonLabel}" to get started</p>
           </div>
         ) : (
           filteredStaff.map((item) => (
@@ -121,6 +130,9 @@ const Staff = () => {
                     </h4>
                     <p className="text-sm text-gray-500 flex items-center gap-1">
                       <FaBriefcase className="text-xs" /> {item.position}
+                    </p>
+                    <p className="text-xs uppercase tracking-wide font-medium text-kora-primary">
+                      {(item.users?.role || item.role || 'staff').replace('_', ' ')}
                     </p>
                     <p className="text-sm text-gray-500 flex items-center gap-1">
                       <FaEnvelope className="text-xs" /> {item.email}
@@ -157,6 +169,7 @@ const Staff = () => {
         <StaffModal
           staff={selectedStaff}
           schoolId={user?.schoolId}
+          defaultRole={isAccountantPage ? 'accountant' : 'staff'}
           onClose={() => {
             setShowModal(false);
             setSelectedStaff(null);

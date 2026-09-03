@@ -20,6 +20,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [typedText, setTypedText] = useState('');
+  const [loginError, setLoginError] = useState('');
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -46,36 +47,47 @@ const Login = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    if (loginError) setLoginError('');
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!formData.email || !formData.password) {
-    toast.error('Please fill in all fields');
-    return;
-  }
-
-  setLoading(true);
-  try {
-    const user = await login(formData.email, formData.password);
-    toast.success('Login successful!');
-    
-    // Redirect based on role
-    if (user?.role === 'super_admin') {
-      navigate('/admin/dashboard');
-    } else if (user?.role === 'student') {
-      navigate('/student/dashboard');
-    } else if (user?.role === 'parent') {
-      navigate('/parent/dashboard');
-    } else {
-      navigate('/dashboard');
+    e.preventDefault();
+    if (!formData.email || !formData.password) {
+      const message = 'Please enter both email and password';
+      setLoginError(message);
+      toast.error(message);
+      return;
     }
-  } catch (error) {
-    toast.error(error.response?.data?.message || 'Login failed');
-  } finally {
-    setLoading(false);
-  }
-};
+
+    setLoading(true);
+    setLoginError('');
+
+    try {
+      const response = await login(formData.email, formData.password);
+      const user = response?.user || response?.data?.user;
+      toast.success('Login successful!');
+
+      if (user?.role === 'super_admin') {
+        navigate('/admin/dashboard');
+      } else if (user?.role === 'teacher') {
+        navigate('/teacher/dashboard');
+      } else if (user?.role === 'student') {
+        navigate('/student/dashboard');
+      } else if (user?.role === 'parent') {
+        navigate('/parent/dashboard');
+      } else if (user?.role === 'accountant') {
+        navigate('/accountant/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Email or password is incorrect';
+      setLoginError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);

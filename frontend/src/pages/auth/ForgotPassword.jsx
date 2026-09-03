@@ -1,13 +1,32 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import { FaEnvelope, FaSpinner, FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
 
 const ForgotPassword = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [countdown, setCountdown] = useState(10);
+
+  useEffect(() => {
+    if (!submitted) return;
+
+    const tick = setInterval(() => {
+      setCountdown((current) => {
+        if (current <= 1) {
+          clearInterval(tick);
+          navigate(`/verify-reset-code?email=${encodeURIComponent(email)}`);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(tick);
+  }, [submitted, email, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,14 +34,18 @@ const ForgotPassword = () => {
       toast.error('Please enter your email');
       return;
     }
+    const cleanEmail = String(email || '').trim().toLowerCase();
 
     setLoading(true);
     try {
-      const response = await api.post('/auth/forgot-password', { email });
-      toast.success(response.data.message || 'Password reset link sent to your email');
+      const response = await api.post('/auth/forgot-password', { email: cleanEmail });
+      toast.success(response.data.message || 'A 6-digit verification code has been sent to your email');
       setSubmitted(true);
+      setCountdown(10);
+      // Redirect immediately to verify code page so the user can enter the code
+      navigate(`/verify-reset-code?email=${encodeURIComponent(cleanEmail)}`);
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to send reset link');
+      toast.error(error.response?.data?.message || 'Failed to send reset code');
     } finally {
       setLoading(false);
     }
@@ -37,12 +60,16 @@ const ForgotPassword = () => {
           </div>
           <h2 className="text-2xl font-bold text-gray-800">Check Your Email</h2>
           <p className="text-gray-500 mt-2">
-            We've sent a password reset link to <strong>{email}</strong>
+            We've sent a 6-digit verification code to <strong>{email}</strong>
           </p>
-          <p className="text-sm text-gray-400 mt-1">The link will expire in 1 hour</p>
-          <Link to="/login" className="mt-6 inline-block text-kora-primary hover:underline">
-            Return to Login
-          </Link>
+          <p className="text-sm text-gray-400 mt-3">Redirecting to code verification in {countdown}s</p>
+          <button
+            type="button"
+            onClick={() => navigate(`/verify-reset-code?email=${encodeURIComponent(email)}`)}
+            className="mt-6 inline-block text-kora-primary hover:underline font-medium"
+          >
+            Continue now
+          </button>
         </div>
       </div>
     );
@@ -58,7 +85,7 @@ const ForgotPassword = () => {
 
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-800">Forgot Password</h1>
-          <p className="text-gray-500 mt-1">Enter your email to receive a reset link</p>
+          <p className="text-gray-500 mt-1">Enter your email to receive a 6-digit reset code</p>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -83,7 +110,7 @@ const ForgotPassword = () => {
             className="w-full mt-4 py-2 bg-kora-primary text-white rounded-lg hover:bg-kora-secondary transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? <FaSpinner className="animate-spin" /> : null}
-            {loading ? 'Sending...' : 'Send Reset Link'}
+            {loading ? 'Sending...' : 'Send Reset Code'}
           </button>
         </form>
       </div>

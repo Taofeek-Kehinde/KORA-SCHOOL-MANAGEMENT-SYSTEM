@@ -59,8 +59,11 @@ const SchoolDashboard = () => {
       });
       return response.data;
     },
-    enabled: !!user?.schoolId,
-    refetchInterval: 30000,
+    enabled: !!user?.schoolId && !!localStorage.getItem('token') && ['school_admin', 'super_admin'].includes(user?.role),
+    retry: false,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // =============================================

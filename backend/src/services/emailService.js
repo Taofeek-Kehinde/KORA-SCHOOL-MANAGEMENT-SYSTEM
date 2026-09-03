@@ -122,6 +122,34 @@ class EmailService {
   // =============================================
   // SEND PASSWORD RESET EMAIL
   // =============================================
+  async sendPasswordResetCodeEmail(email, code) {
+    const digits = Array.from(String(code || '000000'));
+    const otpBlocks = digits.map((digit) => `
+      <span style="display:inline-flex;align-items:center;justify-content:center;width:42px;height:52px;border-radius:12px;border:1px solid #dbeafe;background:#ffffff;color:#111827;font-size:28px;font-weight:700;box-shadow:0 8px 20px rgba(79,70,229,0.08);margin:0 6px;">${digit}</span>
+    `).join('');
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #4F46E5, #7C3AED); padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+          <h1 style="color: white; margin: 0;">Kora School Management</h1>
+        </div>
+        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb;">
+          <h2 style="color: #1f2937;">Reset Your Password</h2>
+          <p style="color: #4b5563;">Use the code below to continue with your password reset:</p>
+          <div style="text-align: center; margin: 30px 0;">${otpBlocks}</div>
+          <p style="color: #4b5563; text-align: center;">This code will expire in 10 minutes.</p>
+          <p style="color: #6b7280; font-size: 12px; text-align: center;">If you didn’t request this, you can safely ignore this email.</p>
+        </div>
+      </div>
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: 'Your Password Reset Code - Kora School Management',
+      html
+    });
+  }
+
   async sendPasswordResetEmail(email, token) {
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
     

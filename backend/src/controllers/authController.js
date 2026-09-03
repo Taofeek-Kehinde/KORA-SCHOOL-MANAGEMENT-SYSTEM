@@ -11,7 +11,9 @@ class AuthController {
     try {
       const { email, password, fullName, phone, role, schoolId } = req.body;
 
-      if (!email || !password || !fullName) {
+      const cleanEmail = String(email || '').trim().toLowerCase();
+
+      if (!cleanEmail || !password || !fullName) {
         return res.status(400).json({
           status: 'error',
           message: 'Email, password, and full name are required'
@@ -21,7 +23,7 @@ class AuthController {
       const { data: existingUser, error: checkError } = await supabaseAdmin
         .from('users')
         .select('id')
-        .eq('email', email)
+        .ilike('email', cleanEmail)
         .single();
 
       if (existingUser) {
@@ -36,7 +38,7 @@ class AuthController {
       const { data: user, error: userError } = await supabaseAdmin
         .from('users')
         .insert({
-          email,
+          email: cleanEmail,
           password_hash: hashedPassword,
           full_name: fullName,
           phone: phone || '',
@@ -102,7 +104,9 @@ class AuthController {
     try {
       const { email, password } = req.body;
 
-      if (!email || !password) {
+      const cleanEmail = String(email || '').trim().toLowerCase();
+
+      if (!cleanEmail || !password) {
         return res.status(400).json({
           status: 'error',
           message: 'Email and password are required'
@@ -112,7 +116,7 @@ class AuthController {
       const { data: user, error: userError } = await supabaseAdmin
         .from('users')
         .select('*')
-        .eq('email', email)
+        .ilike('email', cleanEmail)
         .single();
 
       if (userError || !user) {
@@ -362,11 +366,11 @@ async getMe(req, res) {
   }
 
   // =============================================
-  // FORGOT PASSWORD
+  // FORGOT PASSWORD - SEND 6-DIGIT OTP
   // =============================================
   async forgotPassword(req, res) {
     try {
-      const { email } = req.body;
+      const email = String(req.body.email || '').trim().toLowerCase();
 
       if (!email) {
         return res.status(400).json({
@@ -378,35 +382,41 @@ async getMe(req, res) {
       const { data: user, error: userError } = await supabaseAdmin
         .from('users')
         .select('id, email')
-        .eq('email', email)
-        .single();
+        .ilike('email', email)
+        .maybeSingle();
 
       if (userError || !user) {
         return res.status(404).json({
           status: 'error',
-          message: 'User not found'
+          message: 'No account found with this email address'
         });
       }
 
-      const resetToken = jwt.sign(
-        { userId: user.id, email: user.email },
-        process.env.JWT_SECRET,
-        { expiresIn: '1h' }
-      );
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      // Set expiration to 30 minutes from now
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
       await supabaseAdmin
         .from('users')
         .update({
-          reset_token: resetToken,
-          reset_token_expires: new Date(Date.now() + 3600000)
+          reset_token: code,
+          reset_token_expires: expiresAt.toISOString()
         })
         .eq('id', user.id);
 
-      await emailService.sendPasswordResetEmail(user.email, resetToken);
+      const emailResult = await emailService.sendPasswordResetCodeEmail(user.email, code);
+
+      if (!emailResult.success) {
+        return res.status(500).json({
+          status: 'error',
+          message: 'Failed to send reset code. Please try again.'
+        });
+      }
 
       res.status(200).json({
         status: 'success',
-        message: 'Password reset link sent to your email'
+        message: 'A 6-digit verification code has been sent to your email.',
+        data: { email: user.email }
       });
     } catch (error) {
       console.error('Forgot Password Error:', error);
@@ -419,39 +429,143 @@ async getMe(req, res) {
   }
 
   // =============================================
-  // RESET PASSWORD
+  // VERIFY RESET CODE
   // =============================================
-  async resetPassword(req, res) {
+  async verifyResetCode(req, res) {
     try {
-      const { token, newPassword } = req.body;
+      const email = String(req.body.email || '').trim().toLowerCase();
+      const code = String(req.body.code || '').trim();
 
-      if (!token || !newPassword) {
+      if (!email || !code) {
         return res.status(400).json({
           status: 'error',
-          message: 'Token and new password are required'
+          message: 'Email and verification code are required'
         });
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
       const { data: user, error: userError } = await supabaseAdmin
         .from('users')
-        .select('id, reset_token, reset_token_expires')
-        .eq('id', decoded.userId)
-        .single();
+        .select('id, email, reset_token, reset_token_expires')
+        .ilike('email', email)
+        .maybeSingle();
 
       if (userError || !user) {
         return res.status(404).json({
           status: 'error',
-          message: 'Invalid token'
+          message: 'No account found with this email address'
         });
       }
 
-      if (user.reset_token !== token || new Date(user.reset_token_expires) < new Date()) {
+      if (!user.reset_token || String(user.reset_token) !== code) {
         return res.status(400).json({
           status: 'error',
-          message: 'Invalid or expired token'
+          message: 'Invalid verification code'
         });
+      }
+
+      const expiresAt = new Date(user.reset_token_expires);
+      if (Number.isNaN(expiresAt.getTime()) || expiresAt < new Date()) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Verification code has expired. Please request a new one.'
+        });
+      }
+
+      res.status(200).json({
+        status: 'success',
+        message: 'Verification code confirmed',
+        data: { email: user.email }
+      });
+    } catch (error) {
+      console.error('Verify Reset Code Error:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to verify reset code',
+        error: error.message
+      });
+    }
+  }
+
+  // =============================================
+  // RESET PASSWORD
+  // =============================================
+  async resetPassword(req, res) {
+    try {
+      const { email, code, token, newPassword } = req.body;
+
+      if (!newPassword) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'New password is required'
+        });
+      }
+
+      let userRecord = null;
+      let matchedCode = code;
+
+      if (email) {
+        const cleanEmail = String(email).trim().toLowerCase();
+        const { data: user, error: userError } = await supabaseAdmin
+          .from('users')
+          .select('id, email, reset_token, reset_token_expires, password_hash')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
+
+        if (userError || !user) {
+          return res.status(404).json({
+            status: 'error',
+            message: 'No account found with this email address'
+          });
+        }
+
+        userRecord = user;
+        matchedCode = String(code || '').trim();
+      } else if (token) {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const { data: user, error: userError } = await supabaseAdmin
+          .from('users')
+          .select('id, email, reset_token, reset_token_expires, password_hash')
+          .eq('id', decoded.userId)
+          .maybeSingle();
+
+        if (userError || !user) {
+          return res.status(404).json({
+            status: 'error',
+            message: 'Invalid token'
+          });
+        }
+
+        userRecord = user;
+        matchedCode = String(user.reset_token || '').trim();
+      } else {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Verification details are required'
+        });
+      }
+
+      if (email && code) {
+        if (!userRecord.reset_token || String(userRecord.reset_token) !== matchedCode) {
+          return res.status(400).json({
+            status: 'error',
+            message: 'Invalid verification code'
+          });
+        }
+
+        const expiresAt = new Date(userRecord.reset_token_expires);
+        if (Number.isNaN(expiresAt.getTime()) || expiresAt < new Date()) {
+          return res.status(400).json({
+            status: 'error',
+            message: 'Verification code has expired. Please request a new one.'
+          });
+        }
+      } else if (token) {
+        if (userRecord.reset_token !== token || new Date(userRecord.reset_token_expires) < new Date()) {
+          return res.status(400).json({
+            status: 'error',
+            message: 'Invalid or expired token'
+          });
+        }
       }
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -464,11 +578,11 @@ async getMe(req, res) {
           reset_token_expires: null,
           updated_at: new Date()
         })
-        .eq('id', user.id);
+        .eq('id', userRecord.id);
 
       res.status(200).json({
         status: 'success',
-        message: 'Password reset successfully'
+        message: 'Password updated successfully'
       });
     } catch (error) {
       console.error('Reset Password Error:', error);

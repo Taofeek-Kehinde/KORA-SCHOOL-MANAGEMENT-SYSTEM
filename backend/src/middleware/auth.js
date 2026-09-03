@@ -34,10 +34,11 @@ const findUserByToken = async (decoded) => {
   }
 
   for (const email of candidateEmails) {
+    const cleanEmail = String(email || '').trim().toLowerCase();
     const { data: user, error } = await supabaseAdmin
       .from('users')
       .select(selectFields)
-      .eq('email', email)
+      .ilike('email', cleanEmail)
       .maybeSingle();
 
     if (!error && user) return user;
@@ -97,7 +98,7 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    // ✅ Set req.user from DATABASE (not token)
+  
     req.user = {
       id: user.id,
       adminId: user.id,

@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import api from '../../../utils/api';
 import { FaTimes, FaSpinner, FaCheck } from 'react-icons/fa';
 
-const StaffModal = ({ staff, schoolId, onClose, onSuccess }) => {
+const StaffModal = ({ staff, schoolId, defaultRole = 'staff', onClose, onSuccess }) => {
   const isEditing = !!staff;
 
   const [formData, setFormData] = useState({
@@ -14,7 +14,8 @@ const StaffModal = ({ staff, schoolId, onClose, onSuccess }) => {
     password: '',
     phone: '',
     position: '',
-    department: ''
+    department: '',
+    role: defaultRole
   });
 
   useEffect(() => {
@@ -26,10 +27,13 @@ const StaffModal = ({ staff, schoolId, onClose, onSuccess }) => {
         password: '',
         phone: staff.phone || '',
         position: staff.position || '',
-        department: staff.department || ''
+        department: staff.department || '',
+        role: staff.users?.role || staff.role || defaultRole
       });
+    } else {
+      setFormData(prev => ({ ...prev, role: defaultRole }));
     }
-  }, [staff]);
+  }, [staff, defaultRole]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -148,6 +152,19 @@ const StaffModal = ({ staff, schoolId, onClose, onSuccess }) => {
                 />
               </div>
             )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-kora-primary"
+              >
+                <option value="staff">Staff</option>
+                <option value="accountant">Accountant</option>
+              </select>
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Position *</label>

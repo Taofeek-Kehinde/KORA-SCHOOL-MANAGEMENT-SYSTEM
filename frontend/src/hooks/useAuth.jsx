@@ -8,6 +8,7 @@ const ACTIVITY_EVENTS = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'
 const clearSessionStorage = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('lastActivityAt');
+  localStorage.removeItem('currentUser');
 };
 
 const touchSession = () => {
@@ -28,10 +29,19 @@ const getStoredToken = () => {
   return token;
 };
 
+const getStoredUser = () => {
+  try {
+    const saved = localStorage.getItem('currentUser');
+    return saved ? JSON.parse(saved) : null;
+  } catch (error) {
+    return null;
+  }
+};
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => getStoredUser());
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(getStoredToken());
   const timeoutRef = useRef(null);
@@ -61,13 +71,20 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    const storedUser = getStoredUser();
+
     if (token) {
       touchSession();
       resetIdleTimer();
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       fetchUser();
+    } else if (storedUser) {
+      setUser(normalizeUser(storedUser));
+      delete api.defaults.headers.common['Authorization'];
+      setLoading(false);
     } else {
       delete api.defaults.headers.common['Authorization'];
+      setUser(null);
       setLoading(false);
     }
 
@@ -100,40 +117,81 @@ export const AuthProvider = ({ children }) => {
     };
   }, [token]);
 
+  const normalizeUser = (userData) => {
+    if (!userData) return null;
+
+    const fullName =
+      userData.fullName ||
+      userData.full_name ||
+      [userData.first_name, userData.last_name].filter(Boolean).join(' ') ||
+      userData.name ||
+      null;
+
+    return {
+      ...userData,
+      fullName,
+      displayName: fullName || userData.email || 'User',
+      schoolId: userData.school_id || userData.schoolId || null,
+      studentId: userData.student_id || userData.studentId || null,
+      parentId: userData.parent_id || userData.parentId || null
+    };
+  };
+
   const fetchUser = async () => {
     try {
       const response = await api.get('/auth/me');
       const userData = response.data.data;
-      setUser({
-        ...userData,
-        schoolId: userData.school_id || userData.schoolId || null,
-        studentId: userData.student_id || userData.studentId || null  // ← ADD THIS
-      });
+      const normalized = normalizeUser(userData);
+      localStorage.setItem('currentUser', JSON.stringify(normalized));
+      setUser(normalized);
     } catch (error) {
-      console.error('Fetch user error:', error);
-      clearSessionStorage();
-      setToken(null);
+      const storedUser = getStoredUser();
+      const isRequestAborted =
+        error?.code === 'ERR_CANCELED' ||
+        error?.code === 'ECONNABORTED' ||
+        error?.message === 'Request aborted' ||
+        error?.message === 'Network Error' ||
+        (!error?.response && !error?.config);
+
+      if (isRequestAborted) {
+        if (storedUser) {
+          setUser(normalizeUser(storedUser));
+        }
+        setLoading(false);
+        return;
+      }
+
+      console.warn('User profile check failed; clearing stale token and keeping only the saved user snapshot.', error?.response?.data || error?.message);
+
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        localStorage.removeItem('token');
+        delete api.defaults.headers.common['Authorization'];
+        clearSessionStorage();
+        setToken(null);
+        setUser(null);
+        return;
+      }
+
+      if (storedUser) {
+        setUser(normalizeUser(storedUser));
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const login = async (email, password) => {
-    console.log('Login function called with:', email);
     try {
       const response = await api.post('/auth/login', { email, password });
-      console.log('Login response:', response.data);
 
       const { token, user } = response.data.data;
-      localStorage.setItem('token', token);
+      const normalizedUser = normalizeUser(user);
+      localStorage.setItem('token', token || '');
+      localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
       touchSession();
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setToken(token);
-      setUser({
-        ...user,
-        schoolId: user.school_id || user.schoolId || null,
-        studentId: user.student_id || user.studentId || null  // ← ADD THIS
-      });
+      setToken(token || null);
+      setUser(normalizedUser);
       return response.data;
     } catch (error) {
       console.error('Login API error:', error.response?.data || error.message);
