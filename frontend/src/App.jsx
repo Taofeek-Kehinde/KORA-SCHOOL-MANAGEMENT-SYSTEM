@@ -41,7 +41,7 @@ import Notifications from './pages/Parent/Notifications';
 import AccountantDashboard from './pages/Accountant/Dashboard';
 import FeeManagement from './pages/Accountant/FeeManagement';
 import FinancialReports from './pages/Accountant/FinancialReports';
-
+import Accountants from './pages/SchoolAdmin/Accountants';
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
@@ -113,7 +113,7 @@ const AppRoutes = () => {
         <Route path="school/student-registration" element={<RoleRoute allowedRoles={['school_admin']}><StudentRegistration /></RoleRoute>} />
         <Route path="school/teachers" element={<RoleRoute allowedRoles={['school_admin']}><Teachers /></RoleRoute>} />
         <Route path="school/staff" element={<RoleRoute allowedRoles={['school_admin']}><Staff roleFilter="staff" /></RoleRoute>} />
-        <Route path="school/accountants" element={<RoleRoute allowedRoles={['school_admin']}><Staff roleFilter="accountant" /></RoleRoute>} />
+        <Route path="school/accountants" element={<RoleRoute allowedRoles={['school_admin']}><Accountants /></RoleRoute>} />
         <Route path="school/parents" element={<RoleRoute allowedRoles={['school_admin']}><Parents /></RoleRoute>} />
         <Route path="school/bulk-import" element={<RoleRoute allowedRoles={['school_admin']}><BulkImport /></RoleRoute>} />
         <Route path="school/promotion" element={<RoleRoute allowedRoles={['school_admin']}><Promotion /></RoleRoute>} />
@@ -134,14 +134,15 @@ const AppRoutes = () => {
         {/* Parent Routes */}
         <Route path="parent/dashboard" element={<RoleRoute allowedRoles={['parent']}><ParentDashboard /></RoleRoute>} />
         <Route path="parent/children" element={<RoleRoute allowedRoles={['parent']}><ParentDashboard /></RoleRoute>} />
-        <Route path="parent/notifications" element={<RoleRoute allowedRoles={['parent']}><ParentDashboard /></RoleRoute>} />
+        <Route path="parent/notifications" element={<RoleRoute allowedRoles={['parent']}><Notifications /></RoleRoute>} />
 
         {/* Accountant Routes */}
         <Route path="accountant/dashboard" element={<RoleRoute allowedRoles={['accountant']}><AccountantDashboard /></RoleRoute>} />
         <Route path="accountant/fees" element={<RoleRoute allowedRoles={['accountant']}><FeeManagement /></RoleRoute>} />
         <Route path="accountant/reports" element={<RoleRoute allowedRoles={['accountant']}><FinancialReports /></RoleRoute>} />
 
-        <Route path="school/search" element={<StudentSearch />} />
+        {/* Search Route (accessible to school_admin) */}
+        <Route path="school/search" element={<RoleRoute allowedRoles={['school_admin']}><StudentSearch /></RoleRoute>} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to={dashboardPath} replace />} />
@@ -149,7 +150,6 @@ const AppRoutes = () => {
 
       {/* Global fallback for unauthenticated access */}
       <Route path="*" element={<Navigate to={user ? dashboardPath : "/login"} replace />} />
-
     </Routes>
   );
 };

@@ -68,8 +68,8 @@ app.use('/api/withdrawal', require('./src/routes/withdrawalRoutes'));
 app.use('/api/graduation', require('./src/routes/graduationRoutes'));
 app.use('/api/id-card', require('./src/routes/idCardRoutes'));
 app.use('/api/student-notifications', require('./src/routes/studentNotificationRoutes'));
+app.use('/api/accountants', require('./src/routes/accountantRoutes'));
 app.use('/api/accountant', require('./src/routes/accountantRoutes'));
-
 // =============================================
 // 404 HANDLER
 // =============================================

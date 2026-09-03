@@ -76,7 +76,7 @@ const Login = () => {
       } else if (user?.role === 'parent') {
         navigate('/parent/dashboard');
       } else if (user?.role === 'accountant') {
-        navigate('/accountant/dashboard');
+      navigate('/accountant/dashboard'); 
       } else {
         navigate('/dashboard');
       }

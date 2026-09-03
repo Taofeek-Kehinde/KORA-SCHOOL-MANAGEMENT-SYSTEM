@@ -193,7 +193,7 @@ const FeeManagement = () => {
       {/* Payment Modal */}
       {selectedInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
+  <div className="bg-white rounded-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold text-gray-800">Record Payment</h3>
               <button onClick={() => setSelectedInvoice(null)} className="p-2 hover:bg-gray-100 rounded-lg">

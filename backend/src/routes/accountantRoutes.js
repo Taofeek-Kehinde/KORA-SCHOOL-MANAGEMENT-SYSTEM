@@ -5,24 +5,23 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 // All routes require authentication
 router.use(authenticate);
-router.use(authorize('accountant', 'school_admin', 'super_admin'));
 
-// Get accountant dashboard
-router.get('/schools/:schoolId/dashboard', accountantController.getDashboard);
+// =============================================
+// ACCOUNTANT MANAGEMENT (School Admin only)
+// =============================================
+router.get('/schools/:schoolId/accountants', authorize('school_admin', 'super_admin'), accountantController.getAccountants);
+router.post('/schools/:schoolId/accountants', authorize('school_admin', 'super_admin'), accountantController.createAccountant);
+router.put('/schools/:schoolId/accountants/:accountantId', authorize('school_admin', 'super_admin'), accountantController.updateAccountant);
+router.delete('/schools/:schoolId/accountants/:accountantId', authorize('school_admin', 'super_admin'), accountantController.deleteAccountant);
 
-// Get all invoices
-router.get('/schools/:schoolId/invoices', accountantController.getInvoices);
-
-// Process payment
-router.post('/schools/:schoolId/payments', accountantController.processPayment);
-
-// Get payment history
-router.get('/schools/:schoolId/payments', accountantController.getPaymentHistory);
-
-// Get outstanding fees
-router.get('/schools/:schoolId/outstanding', accountantController.getOutstandingFees);
-
-// Get financial report
-router.get('/schools/:schoolId/report', accountantController.getFinancialReport);
+// =============================================
+// ACCOUNTANT DASHBOARD & FEATURES (Accountant role)
+// =============================================
+router.get('/schools/:schoolId/dashboard', authorize('accountant', 'school_admin', 'super_admin'), accountantController.getDashboard);
+router.get('/schools/:schoolId/invoices', authorize('accountant', 'school_admin', 'super_admin'), accountantController.getInvoices);
+router.post('/schools/:schoolId/payments', authorize('accountant', 'school_admin', 'super_admin'), accountantController.processPayment);
+router.get('/schools/:schoolId/payments', authorize('accountant', 'school_admin', 'super_admin'), accountantController.getPaymentHistory);
+router.get('/schools/:schoolId/outstanding', authorize('accountant', 'school_admin', 'super_admin'), accountantController.getOutstandingFees);
+router.get('/schools/:schoolId/report', authorize('accountant', 'school_admin', 'super_admin'), accountantController.getFinancialReport);
 
 module.exports = router;

@@ -74,6 +74,15 @@ const Sidebar = ({ isOpen }) => {
   ];
 
   // =============================================
+// ACCOUNTANT MENU ITEMS
+// =============================================
+// const accountantMenu = [
+//   { path: '/accountant/dashboard', icon: FaHome, label: 'Dashboard' },
+//   { path: '/accountant/fees', icon: FaMoneyBillWave, label: 'Fees' },
+//   { path: '/accountant/reports', icon: FaChartBar, label: 'Reports' },
+// ];
+
+  // =============================================
   // PARENT MENU ITEMS
   // =============================================
   const parentMenu = [
