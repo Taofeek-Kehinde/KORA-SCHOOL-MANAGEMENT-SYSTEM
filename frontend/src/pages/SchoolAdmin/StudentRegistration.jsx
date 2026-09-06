@@ -220,10 +220,22 @@ const StudentRegistration = () => {
       const response = await api.post(`/student-registration/schools/${user?.schoolId}/students/register`, data);
       return response.data;
     },
-    onSuccess: (data) => {
+       onSuccess: (data) => {
       setLoading(false);
       isSubmittingRef.current = false;
+
       toast.success('Student registered successfully!');
+
+      const parentLogins = data?.data?.parentLogins || [];
+      if (parentLogins.length > 0) {
+        parentLogins.forEach((p) => {
+          toast.success(
+            `Parent login created for ${p.name}: ${p.email} / ${p.tempPassword}`,
+            { duration: 10000 }
+          );
+        });
+      }
+
       queryClient.invalidateQueries(['students', user?.schoolId]);
       navigate('/school/students');
     },

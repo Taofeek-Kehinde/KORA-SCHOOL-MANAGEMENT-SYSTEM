@@ -1,68 +1,65 @@
 const { supabaseAdmin } = require('../config/supabase');
-const auditService = require('../services/auditService');
+const notificationService = require('../services/notificationService');
 
 class AttendanceController {
   // =============================================
-  // UPDATE ATTENDANCE - Log: Attendance modified
+  // BULK UPDATE ATTENDANCE (For Teacher)
   // =============================================
-  async updateAttendance(req, res) {
+  bulkUpdateAttendance = async (req, res) => {
     try {
-      const { attendanceId } = req.params;
-      const { status, reason } = req.body;
-      const { user } = req;
+      const { schoolId } = req.params;
+      const { adminId } = req.user;
+      const { attendance, classId } = req.body;
 
-      // Get old values
-      const { data: oldAttendance, error: fetchError } = await supabaseAdmin
-        .from('attendance')
-        .select('*')
-        .eq('id', attendanceId)
-        .single();
+      if (!attendance || !Array.isArray(attendance)) {
+        return res.status(400).json({ status: 'error', message: 'Attendance data is required' });
+      }
 
-      if (fetchError) throw fetchError;
+      const results = { success: [], failed: [] };
 
-      // Update attendance
-      const updateData = {};
-      if (status !== undefined) updateData.status = status;
-      if (reason !== undefined) updateData.reason = reason;
-      updateData.updated_at = new Date();
+      for (const record of attendance) {
+        try {
+          const { data, error } = await supabaseAdmin
+            .from('attendance')
+            .upsert({
+              student_id: record.studentId,
+              class_id: classId || record.classId,
+              date: record.date || new Date().toISOString().split('T')[0],
+              status: record.status || 'present',
+              school_id: schoolId,
+              recorded_by: adminId,
+              updated_at: new Date()
+            }, { onConflict: 'student_id,date' })
+            .select()
+            .single();
 
-      const { data: updatedAttendance, error } = await supabaseAdmin
-        .from('attendance')
-        .update(updateData)
-        .eq('id', attendanceId)
-        .select()
-        .single();
+          if (error) throw error;
+          results.success.push(data);
 
-      if (error) throw error;
-
-      // LOG: Attendance modified
-      await auditService.logAttendanceModified(
-        oldAttendance.school_id,
-        user.id,
-        {
-          attendanceId: attendanceId,
-          oldValues: {
-            status: oldAttendance.status,
-            reason: oldAttendance.reason
-          },
-          newValues: updateData
-        },
-        req.ip,
-        req.headers['user-agent']
-      );
+          // Notify student about attendance
+          if (record.status && record.status !== 'present') {
+            await notificationService.sendStudentNotification(
+              schoolId,
+              record.studentId,
+              'Attendance Update',
+              `You were marked ${record.status} today.`
+            );
+          }
+        } catch (error) {
+          results.failed.push({ student_id: record.studentId, error: error.message });
+        }
+      }
 
       res.status(200).json({
         status: 'success',
-        message: 'Attendance updated successfully',
-        data: updatedAttendance
+        message: `Updated ${results.success.length} attendance records`,
+        data: results
       });
     } catch (error) {
-      console.error('Update Attendance Error:', error);
-      res.status(500).json({
-        status: 'error',
-        message: 'Failed to update attendance',
-        error: error.message
-      });
+      console.error('Bulk Update Attendance Error:', error);
+      res.status(500).json({ status: 'error', message: 'Failed to update attendance', error: error.message });
     }
-  }
+  };
 }
+
+module.exports = new AttendanceController();

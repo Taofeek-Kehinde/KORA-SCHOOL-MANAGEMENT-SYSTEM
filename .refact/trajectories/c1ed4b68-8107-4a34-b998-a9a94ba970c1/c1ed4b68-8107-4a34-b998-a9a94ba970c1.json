@@ -1,0 +1,72 @@
+{
+  "id": "c1ed4b68-8107-4a34-b998-a9a94ba970c1",
+  "title": "```javascript\n=============================================...",
+  "model": "",
+  "mode": "agent",
+  "tool_use": "agent",
+  "messages": [
+    {
+      "message_id": "fd92e5df-060b-4da0-a151-70b977e4cc5d",
+      "role": "user",
+      "content": "```javascript\n=============================================\n// UPDATE ASSESSMENTS (COMMENTED OUT - No method)\n// =============================================\n```\n\n@file /home/gamp/Downloads/kora-school-management/backend/src/routes/teacherRoutes.js:73\nHello\n",
+      "checkpoints": [
+        {
+          "workspace_folder": "/home/gamp/Downloads/kora-school-management",
+          "commit_hash": "6be33ce6e23dcf09129cb4d25a9dd9eb770cbf21"
+        }
+      ]
+    },
+    {
+      "message_id": "4b7b6fd4-6f11-4a4f-81f1-93be340fc4cb",
+      "role": "error",
+      "content": "Model '' not found. Server has the following models: [\"deepseek/deepseek-v4-flash\"]",
+      "error_info": {
+        "category": "ModelUnavailable",
+        "title": "Model unavailable",
+        "explanation": "The requested model was not found, is unavailable, or is not supported by the provider route.",
+        "suggested_action": "switch_model",
+        "is_retryable": false,
+        "raw_error": "Model '' not found. Server has the following models: [\"deepseek/deepseek-v4-flash\"]"
+      },
+      "_ui_only": true
+    },
+    {
+      "message_id": "1c513cfe-b91f-40b9-bbe1-23adb804249b",
+      "role": "user",
+      "content": "```javascript\n=============================================\n// UPDATE ASSESSMENTS (COMMENTED OUT - No method)\n// =============================================\n```\n\nHI\n",
+      "checkpoints": [
+        {
+          "workspace_folder": "/home/gamp/Downloads/kora-school-management",
+          "commit_hash": "b6fbdad3e44c3aac1d84d0a7ab38f990260bdca7"
+        }
+      ]
+    },
+    {
+      "message_id": "43a29b11-88ff-48f5-866e-e45fc7e74ae3",
+      "role": "error",
+      "content": "Model '' not found. Server has the following models: [\"deepseek/deepseek-v4-flash\"]",
+      "error_info": {
+        "category": "ModelUnavailable",
+        "title": "Model unavailable",
+        "explanation": "The requested model was not found, is unavailable, or is not supported by the provider route.",
+        "suggested_action": "switch_model",
+        "is_retryable": false,
+        "raw_error": "Model '' not found. Server has the following models: [\"deepseek/deepseek-v4-flash\"]"
+      },
+      "_ui_only": true
+    }
+  ],
+  "created_at": "2026-09-04T18:16:34.001489819+00:00",
+  "boost_reasoning": false,
+  "checkpoints_enabled": true,
+  "context_tokens_cap": null,
+  "auto_compression_cap": null,
+  "include_project_info": true,
+  "isTitleGenerated": true,
+  "auto_approve_editing_tools": true,
+  "auto_approve_dangerous_commands": false,
+  "autonomous_no_confirm": false,
+  "auto_enrichment_enabled": false,
+  "root_chat_id": "c1ed4b68-8107-4a34-b998-a9a94ba970c1",
+  "updated_at": "2026-09-04T18:16:55.658843899+00:00"
+}

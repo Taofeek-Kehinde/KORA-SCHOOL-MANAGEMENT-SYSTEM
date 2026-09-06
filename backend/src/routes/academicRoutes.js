@@ -9,7 +9,7 @@ router.use(authenticate);
 // =============================================
 // ACADEMIC SESSIONS
 // =============================================
-router.get('/schools/:schoolId/sessions', authorize('school_admin', 'super_admin'), academicController.getSessions);
+router.get('/schools/:schoolId/sessions', authorize('school_admin', 'super_admin', 'teacher'), academicController.getSessions);
 router.post('/schools/:schoolId/sessions', authorize('school_admin', 'super_admin'), academicController.createSession);
 router.put('/schools/:schoolId/sessions/:sessionId', authorize('school_admin', 'super_admin'), academicController.updateSession);
 router.delete('/schools/:schoolId/sessions/:sessionId', authorize('school_admin', 'super_admin'), academicController.deleteSession);
@@ -17,7 +17,7 @@ router.delete('/schools/:schoolId/sessions/:sessionId', authorize('school_admin'
 // =============================================
 // TERMS
 // =============================================
-router.get('/schools/:schoolId/terms', authorize('school_admin', 'super_admin'), academicController.getTerms);
+router.get('/schools/:schoolId/terms', authorize('school_admin', 'super_admin', 'teacher'), academicController.getTerms);
 router.post('/schools/:schoolId/terms', authorize('school_admin', 'super_admin'), academicController.createTerm);
 router.put('/schools/:schoolId/terms/:termId', authorize('school_admin', 'super_admin'), academicController.updateTerm);
 router.delete('/schools/:schoolId/terms/:termId', authorize('school_admin', 'super_admin'), academicController.deleteTerm);
@@ -25,7 +25,7 @@ router.delete('/schools/:schoolId/terms/:termId', authorize('school_admin', 'sup
 // =============================================
 // CLASSES
 // =============================================
-router.get('/schools/:schoolId/classes', authorize('school_admin', 'super_admin'), academicController.getClasses);
+router.get('/schools/:schoolId/classes', authorize('school_admin', 'super_admin', 'teacher', 'parent'), academicController.getClasses);
 router.post('/schools/:schoolId/classes', authorize('school_admin', 'super_admin'), academicController.createClass);
 router.put('/schools/:schoolId/classes/:classId', authorize('school_admin', 'super_admin'), academicController.updateClass);
 router.delete('/schools/:schoolId/classes/:classId', authorize('school_admin', 'super_admin'), academicController.deleteClass);
@@ -33,7 +33,7 @@ router.delete('/schools/:schoolId/classes/:classId', authorize('school_admin', '
 // =============================================
 // SUBJECTS
 // =============================================
-router.get('/schools/:schoolId/subjects', authorize('school_admin', 'super_admin'), academicController.getSubjects);
+router.get('/schools/:schoolId/subjects', authorize('school_admin', 'super_admin', 'teacher'), academicController.getSubjects);
 router.post('/schools/:schoolId/subjects', authorize('school_admin', 'super_admin'), academicController.createSubject);
 router.put('/schools/:schoolId/subjects/:subjectId', authorize('school_admin', 'super_admin'), academicController.updateSubject);
 router.delete('/schools/:schoolId/subjects/:subjectId', authorize('school_admin', 'super_admin'), academicController.deleteSubject);
@@ -43,7 +43,7 @@ router.post('/schools/:schoolId/subjects/remove', authorize('school_admin', 'sup
 // =============================================
 // DEPARTMENTS
 // =============================================
-router.get('/schools/:schoolId/departments', authorize('school_admin', 'super_admin'), academicController.getDepartments);
+router.get('/schools/:schoolId/departments', authorize('school_admin', 'super_admin', 'teacher'), academicController.getDepartments);
 router.post('/schools/:schoolId/departments', authorize('school_admin', 'super_admin'), academicController.createDepartment);
 router.put('/schools/:schoolId/departments/:departmentId', authorize('school_admin', 'super_admin'), academicController.updateDepartment);
 router.delete('/schools/:schoolId/departments/:departmentId', authorize('school_admin', 'super_admin'), academicController.deleteDepartment);
@@ -51,7 +51,7 @@ router.delete('/schools/:schoolId/departments/:departmentId', authorize('school_
 // =============================================
 // GRADING SYSTEM
 // =============================================
-router.get('/schools/:schoolId/grading', authorize('school_admin', 'super_admin'), academicController.getGradingSystem);
+router.get('/schools/:schoolId/grading', authorize('school_admin', 'super_admin', 'teacher'), academicController.getGradingSystem);
 router.post('/schools/:schoolId/grading', authorize('school_admin', 'super_admin'), academicController.createGradingRule);
 router.put('/schools/:schoolId/grading/:ruleId', authorize('school_admin', 'super_admin'), academicController.updateGradingRule);
 router.delete('/schools/:schoolId/grading/:ruleId', authorize('school_admin', 'super_admin'), academicController.deleteGradingRule);
@@ -59,8 +59,8 @@ router.delete('/schools/:schoolId/grading/:ruleId', authorize('school_admin', 's
 // =============================================
 // SCHOOL PROFILE (Colours, Motto, Signature, Report Card)
 // =============================================
-router.get('/schools/:schoolId/profile', authorize('school_admin', 'super_admin'), academicController.getSchoolProfile);
+router.get('/schools/:schoolId/profile', authorize('school_admin', 'super_admin', 'teacher'), academicController.getSchoolProfile);
 router.put('/schools/:schoolId/profile', authorize('school_admin', 'super_admin'), academicController.updateSchoolProfile);
-router.get('/schools/:schoolId/teachers', authorize('school_admin', 'super_admin'), academicController.getTeachers);
+router.get('/schools/:schoolId/teachers', authorize('school_admin', 'super_admin', 'teacher'), academicController.getTeachers);
 
 module.exports = router;

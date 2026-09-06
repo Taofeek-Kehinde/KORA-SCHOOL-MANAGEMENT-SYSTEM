@@ -51,7 +51,7 @@ app.use('/api/academic', require('./src/routes/academicRoutes'));
 app.use('/api/dashboard', require('./src/routes/dashboardRoutes'));
 app.use('/api/white-label', require('./src/routes/whiteLabelRoutes'));
 app.use('/api/audit', require('./src/routes/auditRoutes'));
-app.use('/api/teachers', require('./src/routes/teacherRoutes'));
+// app.use('/api/teachers', require('./src/routes/teacherRoutes'));
 app.use('/api/staff', require('./src/routes/staffRoutes'));
 app.use('/api/students', require('./src/routes/studentRoutes'));
 app.use('/api/parents', require('./src/routes/parentRoutes'));
@@ -70,6 +70,33 @@ app.use('/api/id-card', require('./src/routes/idCardRoutes'));
 app.use('/api/student-notifications', require('./src/routes/studentNotificationRoutes'));
 app.use('/api/accountants', require('./src/routes/accountantRoutes'));
 app.use('/api/accountant', require('./src/routes/accountantRoutes'));
+app.use('/api/teachers', require('./src/routes/teacherRoutes'));
+app.use('/api/lifecycle', require('./src/routes/studentLifecycleRoutes'));
+app.use('/api/exams', require('./src/routes/examRoutes'));
+app.use('/api/timetable', require('./src/routes/timetableRoutes'));
+app.use('/api/homework', require('./src/routes/homeworkRoutes'));
+app.use('/api/library', require('./src/routes/libraryRoutes'));
+// Admission Management Routes
+app.use('/api/admissions', require('./src/routes/admissionRoutes'));
+app.use('/api/admission-forms', require('./src/routes/admissionFormRoutes'));
+app.use('/api/admission-exams', require('./src/routes/admissionExamRoutes'));
+app.use('/api/admission-interviews', require('./src/routes/admissionInterviewRoutes'));
+app.use('/api/admission-letters', require('./src/routes/admissionLetterRoutes'));
+app.use('/api/admission-reports', require('./src/routes/admissionReportRoutes'));
+// Admission Integration Routes
+app.use('/api/admission-integration', require('./src/routes/admissionIntegrationRoutes'));
+// V4 Academic Management Routes
+app.use('/api/academic-structure', require('./src/routes/academicStructureRoutes'));
+app.use('/api/subjects', require('./src/routes/subjectRoutes'));
+app.use('/api/curricula', require('./src/routes/curriculumRoutes'));
+app.use('/api/lesson-notes', require('./src/routes/lessonNoteRoutes'));
+app.use('/api/schemes-of-work', require('./src/routes/schemeOfWorkRoutes'));
+app.use('/api/assessments', require('./src/routes/assessmentRoutes'));
+app.use('/api/academic-calendar', require('./src/routes/academicCalendarRoutes'));
+app.use('/api/academic-reports', require('./src/routes/academicReportRoutes'));
+app.use('/api/approval-workflows', require('./src/routes/approvalWorkflowRoutes'));
+app.use('/api/notifications', require('./src/routes/notificationBellRoutes'));
+
 // =============================================
 // 404 HANDLER
 // =============================================

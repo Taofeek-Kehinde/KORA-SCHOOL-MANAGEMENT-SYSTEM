@@ -1,3 +1,4 @@
+const { supabaseAdmin } = require('../config/supabase');
 const studentNotificationService = require('../services/studentNotificationService');
 
 class StudentNotificationController {
@@ -60,10 +61,27 @@ class StudentNotificationController {
   // =============================================
   // GET PARENT NOTIFICATIONS
   // =============================================
-  getParentNotifications = async (req, res) => {
+    getParentNotifications = async (req, res) => {
     try {
       const { parentId } = req.params;
       const { limit = 50, offset = 0 } = req.query;
+
+      // Resolve the parent's user_id, since notifications are stored against user_id
+      const { data: parent, error: parentFetchError } = await supabaseAdmin
+        .from('parents')
+        .select('user_id')
+        .eq('id', parentId)
+        .maybeSingle();
+
+      if (parentFetchError) throw parentFetchError;
+
+      if (!parent?.user_id) {
+        return res.status(200).json({
+          status: 'success',
+          data: [],
+          pagination: { limit: parseInt(limit), offset: parseInt(offset), total: 0 }
+        });
+      }
 
       const { data, error, count } = await supabaseAdmin
         .from('notifications')
@@ -71,7 +89,7 @@ class StudentNotificationController {
           *,
           students!student_id(first_name, last_name, admission_number)
         `, { count: 'exact' })
-        .eq('parent_id', parentId)
+        .eq('user_id', parent.user_id)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 

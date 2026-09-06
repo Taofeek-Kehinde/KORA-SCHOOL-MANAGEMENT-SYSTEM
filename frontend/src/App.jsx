@@ -42,6 +42,43 @@ import AccountantDashboard from './pages/Accountant/Dashboard';
 import FeeManagement from './pages/Accountant/FeeManagement';
 import FinancialReports from './pages/Accountant/FinancialReports';
 import Accountants from './pages/SchoolAdmin/Accountants';
+// Admission Pages
+import ApplyForAdmission from './pages/Parent/ApplyForAdmission';
+import ApplicationStatus from './pages/Parent/ApplicationStatus';
+import AdmissionDashboard from './pages/AdmissionOfficer/AdmissionDashboard';
+import ApplicationReview from './pages/AdmissionOfficer/ApplicationReview';
+import AdmissionFormBuilder from './pages/SchoolAdmin/AdmissionFormBuilder';
+import AdmissionExams from './pages/AdmissionOfficer/AdmissionExams';
+import AdmissionInterviews from './pages/AdmissionOfficer/AdmissionInterviews';
+import AdmissionLetters from './pages/AdmissionOfficer/AdmissionLetters';
+import Enrollment from './pages/SchoolAdmin/Enrollment';
+import AdmissionReports from './pages/SchoolAdmin/AdmissionReports';
+
+// V4 Academic Management Pages
+import AcademicStructure from './pages/SchoolAdmin/AcademicStructure';
+import SubjectsManagement from './pages/SchoolAdmin/SubjectsManagement';
+import LessonNotes from './pages/Teacher/LessonNotes';
+import SchemeOfWork from './pages/Teacher/SchemeOfWork';
+import Assessments from './pages/Teacher/Assessments';
+import AcademicCalendar from './pages/SchoolAdmin/AcademicCalendar';
+import AcademicReports from './pages/SchoolAdmin/AcademicReports';
+import ApprovalWorkflows from './pages/SchoolAdmin/ApprovalWorkflows';
+
+import Lifecycle from './pages/SchoolAdmin/Lifecycle';
+import Timetable from './pages/Teacher/Timetable';
+import Homework from './pages/Teacher/Homework';
+import Exams from './pages/Teacher/Exams';
+
+import Overview from './pages/Student/Overview';
+import Academics from './pages/Student/Academics';
+import FeesPayments from './pages/Student/FeesPayments';
+import AttendancePage from './pages/Student/AttendancePage';
+import TimetablePage from './pages/Student/TimetablePage';
+import HomeworkPage from './pages/Student/HomeworkPage';
+import LessonNotesPage from './pages/Student/LessonNotesPage';
+import ParentsPage from './pages/Student/ParentsPage';
+import LibraryPage from './pages/Student/LibraryPage';
+
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
@@ -58,14 +95,8 @@ const AppRoutes = () => {
   };
 
   const RoleRoute = ({ allowedRoles, children }) => {
-    if (!user) {
-      return <Navigate to="/login" replace />;
-    }
-
-    if (!allowedRoles.includes(user.role)) {
-      return <Navigate to={getDashboardPath()} replace />;
-    }
-
+    if (!user) return <Navigate to="/login" replace />;
+    if (!allowedRoles.includes(user.role)) return <Navigate to={getDashboardPath()} replace />;
     return children;
   };
 
@@ -92,7 +123,7 @@ const AppRoutes = () => {
 
       {/* Protected Routes - with Layout */}
       <Route path="/" element={user ? <Layout user={user} /> : <Navigate to="/login" replace />}>
-        {/* ✅ INDEX redirect based on role */}
+        {/* INDEX redirect based on role */}
         <Route index element={<Navigate to={dashboardPath} replace />} />
 
         {/* Super Admin Routes */}
@@ -112,7 +143,7 @@ const AppRoutes = () => {
         <Route path="school/students" element={<RoleRoute allowedRoles={['school_admin']}><Students /></RoleRoute>} />
         <Route path="school/student-registration" element={<RoleRoute allowedRoles={['school_admin']}><StudentRegistration /></RoleRoute>} />
         <Route path="school/teachers" element={<RoleRoute allowedRoles={['school_admin']}><Teachers /></RoleRoute>} />
-        <Route path="school/staff" element={<RoleRoute allowedRoles={['school_admin']}><Staff roleFilter="staff" /></RoleRoute>} />
+        <Route path="school/staff" element={<RoleRoute allowedRoles={['school_admin']}><Staff /></RoleRoute>} />
         <Route path="school/accountants" element={<RoleRoute allowedRoles={['school_admin']}><Accountants /></RoleRoute>} />
         <Route path="school/parents" element={<RoleRoute allowedRoles={['school_admin']}><Parents /></RoleRoute>} />
         <Route path="school/bulk-import" element={<RoleRoute allowedRoles={['school_admin']}><BulkImport /></RoleRoute>} />
@@ -121,28 +152,68 @@ const AppRoutes = () => {
         <Route path="school/withdrawal" element={<RoleRoute allowedRoles={['school_admin']}><Withdrawal /></RoleRoute>} />
         <Route path="school/graduation" element={<RoleRoute allowedRoles={['school_admin']}><Graduation /></RoleRoute>} />
         <Route path="school/id-card" element={<RoleRoute allowedRoles={['school_admin']}><IDCard /></RoleRoute>} />
+        <Route path="school/lifecycle" element={<RoleRoute allowedRoles={['school_admin']}><Lifecycle /></RoleRoute>} />
+        <Route path="school/search" element={<RoleRoute allowedRoles={['school_admin']}><StudentSearch /></RoleRoute>} />
+
+        {/* V4 Academic Management (School Admin) */}
+        <Route path="school/academic-structure" element={<RoleRoute allowedRoles={['school_admin']}><AcademicStructure /></RoleRoute>} />
+        <Route path="school/subjects" element={<RoleRoute allowedRoles={['school_admin']}><SubjectsManagement /></RoleRoute>} />
+        <Route path="school/academic-calendar" element={<RoleRoute allowedRoles={['school_admin']}><AcademicCalendar /></RoleRoute>} />
+        <Route path="school/academic-reports" element={<RoleRoute allowedRoles={['school_admin']}><AcademicReports /></RoleRoute>} />
+        <Route path="school/approval-workflows" element={<RoleRoute allowedRoles={['school_admin']}><ApprovalWorkflows /></RoleRoute>} />
+
+        {/* Admission Routes (School Admin) */}
+        <Route path="school/admission/form-builder" element={<RoleRoute allowedRoles={['school_admin']}><AdmissionFormBuilder /></RoleRoute>} />
+        <Route path="school/admission/enrollment/:applicationId" element={<RoleRoute allowedRoles={['school_admin']}><Enrollment /></RoleRoute>} />
+        <Route path="school/admission/reports" element={<RoleRoute allowedRoles={['school_admin']}><AdmissionReports /></RoleRoute>} />
 
         {/* Teacher Routes */}
         <Route path="teacher/dashboard" element={<RoleRoute allowedRoles={['teacher']}><TeacherDashboard /></RoleRoute>} />
         <Route path="teacher/classes" element={<RoleRoute allowedRoles={['teacher']}><TeacherDashboard /></RoleRoute>} />
         <Route path="teacher/attendance" element={<RoleRoute allowedRoles={['teacher']}><TeacherAttendance /></RoleRoute>} />
         <Route path="teacher/grades" element={<RoleRoute allowedRoles={['teacher']}><TeacherGrades /></RoleRoute>} />
+        <Route path="teacher/timetable" element={<RoleRoute allowedRoles={['teacher']}><Timetable /></RoleRoute>} />
+        <Route path="teacher/homework" element={<RoleRoute allowedRoles={['teacher']}><Homework /></RoleRoute>} />
+        <Route path="teacher/exams" element={<RoleRoute allowedRoles={['teacher']}><Exams /></RoleRoute>} />
+
+        {/* V4 Teacher Routes */}
+        <Route path="teacher/lesson-notes" element={<RoleRoute allowedRoles={['teacher']}><LessonNotes /></RoleRoute>} />
+        <Route path="teacher/scheme-of-work" element={<RoleRoute allowedRoles={['teacher']}><SchemeOfWork /></RoleRoute>} />
+        <Route path="teacher/assessments" element={<RoleRoute allowedRoles={['teacher']}><Assessments /></RoleRoute>} />
 
         {/* Student Routes */}
+        <Route path="student/dashboard" element={<RoleRoute allowedRoles={['student']}><Overview /></RoleRoute>} />
         <Route path="student/dashboard" element={<RoleRoute allowedRoles={['student']}><StudentDashboard /></RoleRoute>} />
-
+        <Route path="student/academics" element={<RoleRoute allowedRoles={['student']}><Academics /></RoleRoute>} />
+        <Route path="student/fees" element={<RoleRoute allowedRoles={['student']}><FeesPayments /></RoleRoute>} />
+        <Route path="student/attendance" element={<RoleRoute allowedRoles={['student']}><AttendancePage /></RoleRoute>} />
+        <Route path="student/timetable" element={<RoleRoute allowedRoles={['student']}><TimetablePage /></RoleRoute>} />
+        <Route path="student/homework" element={<RoleRoute allowedRoles={['student']}><HomeworkPage /></RoleRoute>} />
+        <Route path="student/lesson-notes" element={<RoleRoute allowedRoles={['student']}><LessonNotesPage /></RoleRoute>} />
+        <Route path="student/parents" element={<RoleRoute allowedRoles={['student']}><ParentsPage /></RoleRoute>} />
+        <Route path="student/library" element={<RoleRoute allowedRoles={['student']}><LibraryPage /></RoleRoute>} />
         {/* Parent Routes */}
         <Route path="parent/dashboard" element={<RoleRoute allowedRoles={['parent']}><ParentDashboard /></RoleRoute>} />
         <Route path="parent/children" element={<RoleRoute allowedRoles={['parent']}><ParentDashboard /></RoleRoute>} />
         <Route path="parent/notifications" element={<RoleRoute allowedRoles={['parent']}><Notifications /></RoleRoute>} />
+
+        {/* Admission Routes (Parent) */}
+        <Route path="admissions/apply" element={<RoleRoute allowedRoles={['parent']}><ApplyForAdmission /></RoleRoute>} />
+        <Route path="admissions/apply/:schoolId" element={<RoleRoute allowedRoles={['parent']}><ApplyForAdmission /></RoleRoute>} />
+        <Route path="admissions/status" element={<RoleRoute allowedRoles={['parent']}><ApplicationStatus /></RoleRoute>} />
+        <Route path="admissions/status/:applicationId" element={<RoleRoute allowedRoles={['parent']}><ApplicationStatus /></RoleRoute>} />
 
         {/* Accountant Routes */}
         <Route path="accountant/dashboard" element={<RoleRoute allowedRoles={['accountant']}><AccountantDashboard /></RoleRoute>} />
         <Route path="accountant/fees" element={<RoleRoute allowedRoles={['accountant']}><FeeManagement /></RoleRoute>} />
         <Route path="accountant/reports" element={<RoleRoute allowedRoles={['accountant']}><FinancialReports /></RoleRoute>} />
 
-        {/* Search Route (accessible to school_admin) */}
-        <Route path="school/search" element={<RoleRoute allowedRoles={['school_admin']}><StudentSearch /></RoleRoute>} />
+        {/* Admission Officer Routes */}
+        <Route path="admissions/dashboard" element={<RoleRoute allowedRoles={['school_admin', 'admission_officer']}><AdmissionDashboard /></RoleRoute>} />
+        <Route path="admissions/review/:applicationId" element={<RoleRoute allowedRoles={['school_admin', 'admission_officer']}><ApplicationReview /></RoleRoute>} />
+        <Route path="admissions/exams" element={<RoleRoute allowedRoles={['school_admin', 'admission_officer']}><AdmissionExams /></RoleRoute>} />
+        <Route path="admissions/interviews" element={<RoleRoute allowedRoles={['school_admin', 'admission_officer']}><AdmissionInterviews /></RoleRoute>} />
+        <Route path="admissions/letters/:applicationId" element={<RoleRoute allowedRoles={['school_admin', 'admission_officer', 'parent']}><AdmissionLetters /></RoleRoute>} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to={dashboardPath} replace />} />

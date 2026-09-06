@@ -38,6 +38,28 @@ const getStoredUser = () => {
   }
 };
 
+// ✅ ADD THIS FUNCTION
+const normalizeUser = (userData) => {
+  if (!userData) return null;
+
+  const fullName =
+    userData.fullName ||
+    userData.full_name ||
+    [userData.first_name, userData.last_name].filter(Boolean).join(' ') ||
+    userData.name ||
+    null;
+
+  return {
+    ...userData,
+    fullName,
+    displayName: fullName || userData.email || 'User',
+    schoolId: userData.school_id || userData.schoolId || null,
+    studentId: userData.student_id || userData.studentId || null,
+    parentId: userData.parent_id || userData.parentId || null,
+    teacherId: userData.teacher_id || userData.teacherId || null
+  };
+};
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -117,81 +139,45 @@ export const AuthProvider = ({ children }) => {
     };
   }, [token]);
 
-  const normalizeUser = (userData) => {
-    if (!userData) return null;
-
-    const fullName =
-      userData.fullName ||
-      userData.full_name ||
-      [userData.first_name, userData.last_name].filter(Boolean).join(' ') ||
-      userData.name ||
-      null;
-
-    return {
-      ...userData,
-      fullName,
-      displayName: fullName || userData.email || 'User',
-      schoolId: userData.school_id || userData.schoolId || null,
-      studentId: userData.student_id || userData.studentId || null,
-      parentId: userData.parent_id || userData.parentId || null
-    };
-  };
-
   const fetchUser = async () => {
-    try {
-      const response = await api.get('/auth/me');
-      const userData = response.data.data;
-      const normalized = normalizeUser(userData);
-      localStorage.setItem('currentUser', JSON.stringify(normalized));
-      setUser(normalized);
-    } catch (error) {
-      const storedUser = getStoredUser();
-      const isRequestAborted =
-        error?.code === 'ERR_CANCELED' ||
-        error?.code === 'ECONNABORTED' ||
-        error?.message === 'Request aborted' ||
-        error?.message === 'Network Error' ||
-        (!error?.response && !error?.config);
+  try {
+    const response = await api.get('/auth/me');
 
-      if (isRequestAborted) {
-        if (storedUser) {
-          setUser(normalizeUser(storedUser));
-        }
-        setLoading(false);
-        return;
-      }
+    console.log('AUTH ME RESPONSE:', response.data);
 
-      console.warn('User profile check failed; clearing stale token and keeping only the saved user snapshot.', error?.response?.data || error?.message);
+    const userData = response.data.data;
 
-      if (error?.response?.status === 401 || error?.response?.status === 403) {
-        localStorage.removeItem('token');
-        delete api.defaults.headers.common['Authorization'];
-        clearSessionStorage();
-        setToken(null);
-        setUser(null);
-        return;
-      }
+    console.log('USER DATA:', userData);
 
-      if (storedUser) {
-        setUser(normalizeUser(storedUser));
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+    const normalized = normalizeUser(userData);
+
+    console.log('NORMALIZED USER:', normalized);
+
+    localStorage.setItem('currentUser', JSON.stringify(normalized));
+    setUser(normalized);
+
+  } catch (error) {
+    console.error('FETCH USER ERROR:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password });
-
       const { token, user } = response.data.data;
+
+      // ✅ ALWAYS save to localStorage
       const normalizedUser = normalizeUser(user);
       localStorage.setItem('token', token || '');
       localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
+
       touchSession();
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setToken(token || null);
       setUser(normalizedUser);
+
       return response.data;
     } catch (error) {
       console.error('Login API error:', error.response?.data || error.message);

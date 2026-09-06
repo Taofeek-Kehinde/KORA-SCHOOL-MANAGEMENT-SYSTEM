@@ -100,7 +100,7 @@ class AuthController {
   // =============================================
   // LOGIN - FIXED with inline token
   // =============================================
-  async login(req, res) {
+   async login(req, res) {
     try {
       const { email, password } = req.body;
 
@@ -146,16 +146,26 @@ class AuthController {
         .update({ last_login: new Date() })
         .eq('id', user.id);
 
-      // =============================================
-      // INLINE TOKEN - NO METHOD CALL
-      // =============================================
+      // ✅ Look up parentId if this user is a parent
+      let parentId = null;
+      if (user.role === 'parent') {
+        const { data: parent } = await supabaseAdmin
+          .from('parents')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+        if (parent) parentId = parent.id;
+      }
+
       const token = jwt.sign(
         {
           userId: user.id,
           email: user.email,
           role: user.role,
           schoolId: user.school_id,
-          studentId: user.student_id
+          studentId: user.student_id,
+          teacherId: user.teacher_id
         },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRE || '7d' }
@@ -169,9 +179,13 @@ class AuthController {
             id: user.id,
             email: user.email,
             fullName: user.full_name,
+            phone: user.phone,
             role: user.role,
             schoolId: user.school_id,
             studentId: user.student_id,
+            teacherId: user.teacher_id,
+            campusId: user.campus_id,
+            parentId,
             isVerified: user.is_verified
           },
           token
@@ -187,53 +201,66 @@ class AuthController {
     }
   }
 
-
+      
   // Add this method if it doesn't exist
 
-async getMe(req, res) {
-  try {
-    const user = req.user;
-    
-    // Get user from database
-    const { data: userData, error } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+  async getMe(req, res) {
+    try {
+      const user = req.user;
 
-    if (error || !userData) {
-      return res.status(404).json({
+      const { data: userData, error } = await supabaseAdmin
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error || !userData) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'User not found'
+        });
+      }
+
+      let parentId = null;
+      if (userData.role === 'parent') {
+        const { data: parent } = await supabaseAdmin
+          .from('parents')
+          .select('id')
+          .eq('user_id', userData.id)
+          .eq('is_active', true)
+          .maybeSingle();
+        if (parent) parentId = parent.id;
+      }
+
+      res.status(200).json({
+        status: 'success',
+        data: {
+          id: userData.id,
+          email: userData.email,
+          fullName: userData.full_name,
+          phone: userData.phone,
+          role: userData.role,
+          schoolId: userData.school_id,
+          studentId: userData.student_id,
+          teacherId: userData.teacher_id,
+          campusId: userData.campus_id,
+          parentId,
+          isActive: userData.is_active,
+          isVerified: userData.is_verified,
+          lastLogin: userData.last_login,
+          profilePicUrl: userData.profile_pic_url
+        }
+      });
+    } catch (error) {
+      console.error('Get Me Error:', error);
+      res.status(500).json({
         status: 'error',
-        message: 'User not found'
+        message: 'Failed to get user',
+        error: error.message
       });
     }
-
-    res.status(200).json({
-      status: 'success',
-      data: {
-        id: userData.id,
-        email: userData.email,
-        fullName: userData.full_name,
-        phone: userData.phone,
-        role: userData.role,
-        schoolId: userData.school_id,
-        studentId: userData.student_id,
-        campusId: userData.campus_id,
-        isActive: userData.is_active,
-        isVerified: userData.is_verified,
-        lastLogin: userData.last_login,
-        profilePicUrl: userData.profile_pic_url
-      }
-    });
-  } catch (error) {
-    console.error('Get Me Error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to get user',
-      error: error.message
-    });
   }
-}
+  
   // =============================================
   // GET PROFILE
   // =============================================
@@ -683,16 +710,17 @@ async getMe(req, res) {
 
       // INLINE TOKEN
       const token = jwt.sign(
-        {
-          userId: user.id,
-          email: user.email,
-          role: user.role,
-          schoolId: user.school_id,
-          studentId: user.student_id
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRE || '7d' }
-      );
+  {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    schoolId: user.school_id,
+    studentId: user.student_id,
+    teacherId: user.teacher_id
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: process.env.JWT_EXPIRE || '7d' }
+);
 
       res.status(200).json({
         status: 'success',

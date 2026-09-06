@@ -1,8 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FaBell, FaUserCircle } from 'react-icons/fa';
+import { FaUserCircle } from 'react-icons/fa';
+import NotificationBell from './NotificationBell';
+import { useAuth } from '../../hooks/useAuth';
 
 const Header = ({ user, onAIOpen }) => {
+  const { user: currentUser } = useAuth();
+
   const displayName =
     user?.displayName ||
     user?.fullName ||
@@ -17,9 +21,9 @@ const Header = ({ user, onAIOpen }) => {
         <h1 className="text-lg font-semibold whitespace-nowrap truncate">Dashboard</h1>
       </div>
       <div className="flex items-center gap-4 flex-shrink-0">
-        <button onClick={onAIOpen} className="p-2 rounded hover:bg-gray-100">
-          <FaBell />
-        </button>
+        {/* Notification Bell - ALWAYS SHOW for all roles */}
+        <NotificationBell />
+        
         <Link to="#" className="flex items-center gap-2 min-w-0">
           <FaUserCircle className="flex-shrink-0" />
           <span className="hidden sm:inline truncate max-w-[120px]">{displayName}</span>

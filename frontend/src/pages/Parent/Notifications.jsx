@@ -47,10 +47,10 @@ const Notifications = () => {
 
   const notifications = data?.data || [];
 
-  const filteredNotifications = notifications.filter(n => {
-    if (filter === 'all') return true;
-    return n.type === filter;
-  });
+ const filteredNotifications = notifications.filter(n => {
+  if (filter === 'all') return true;
+  return n.category === filter;
+});
 
   const getNotificationIcon = (type) => {
     switch (type) {
@@ -111,7 +111,7 @@ const Notifications = () => {
       ) : (
         <div className="space-y-3">
           {(showAll ? filteredNotifications : filteredNotifications.slice(0, 10)).map((notif) => {
-            const { icon: Icon, color } = getNotificationIcon(notif.type);
+  const { icon: Icon, color } = getNotificationIcon(notif.category);
             return (
               <div
                 key={notif.id}

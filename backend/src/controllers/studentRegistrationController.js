@@ -168,371 +168,424 @@ class StudentRegistrationController {
     }
   }
 
-  async registerStudent(req, res) {
-  try {
-    const { schoolId } = req.params;
-    const { adminId } = req.user;
+    async registerStudent(req, res) {
+    try {
+      const { schoolId } = req.params;
+      const { adminId } = req.user;
 
-    console.log('=== REGISTER STUDENT ===');
-    console.log('School ID:', schoolId);
-    console.log('Admin ID:', adminId);
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
+      const {
+        firstName,
+        middleName,
+        lastName,
+        gender,
+        dateOfBirth,
+        nationality,
+        stateOfOrigin,
+        localGovernment,
+        religion,
+        bloodGroup,
+        genotype,
+        passport,
+        birthCertificate,
+        previousSchool,
+        transferStatus,
+        admissionSession,
+        admissionTerm,
+        currentSession,
+        classId,
+        currentArm,
+        studentStatus,
+        boardingStatus,
+        house,
+        club,
+        sport,
+        electiveSubjects,
+        medicalConditions,
+        allergies,
+        disabilities,
+        medications,
+        doctorName,
+        hospital,
+        emergencyInstructions,
+        parents,
+        documents,
+        studentEmail,
+        studentPassword
+      } = req.body;
 
-    // ✅ ADD studentEmail and studentPassword here
-    const {
-      firstName,
-      middleName,
-      lastName,
-      gender,
-      dateOfBirth,
-      nationality,
-      stateOfOrigin,
-      localGovernment,
-      religion,
-      bloodGroup,
-      genotype,
-      passport,
-      birthCertificate,
-      previousSchool,
-      transferStatus,
-      admissionSession,
-      admissionTerm,
-      currentSession,
-      classId,
-      currentArm,
-      studentStatus,
-      boardingStatus,
-      house,
-      club,
-      sport,
-      electiveSubjects,
-      medicalConditions,
-      allergies,
-      disabilities,
-      medications,
-      doctorName,
-      hospital,
-      emergencyInstructions,
-      parents,
-      documents,
-      studentEmail,      // ✅ ADD THIS
-      studentPassword    // ✅ ADD THIS
-    } = req.body;
+      let parsedElectiveSubjects = electiveSubjects;
+      if (typeof parsedElectiveSubjects === 'string') {
+        try { parsedElectiveSubjects = JSON.parse(parsedElectiveSubjects); }
+        catch (e) { parsedElectiveSubjects = []; }
+      }
 
-    // Parse JSON-string fields
-    let parsedElectiveSubjects = electiveSubjects;
-    if (typeof parsedElectiveSubjects === 'string') {
-      try { parsedElectiveSubjects = JSON.parse(parsedElectiveSubjects); } 
-      catch (e) { parsedElectiveSubjects = []; }
-    }
+      let parsedParents = parents;
+      if (typeof parsedParents === 'string') {
+        try { parsedParents = JSON.parse(parsedParents); }
+        catch (e) { parsedParents = []; }
+      }
 
-    let parsedParents = parents;
-    if (typeof parsedParents === 'string') {
-      try { parsedParents = JSON.parse(parsedParents); } 
-      catch (e) { parsedParents = []; }
-    }
+      if (!firstName || !lastName || !gender || !dateOfBirth || !classId) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'First name, last name, gender, date of birth, and class are required'
+        });
+      }
 
-    // Validation
-    if (!firstName || !lastName || !gender || !dateOfBirth || !classId) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'First name, last name, gender, date of birth, and class are required'
-      });
-    }
+      let admissionNumber = req.body.admissionNumber;
+      if (!admissionNumber) {
+        const year = new Date().getFullYear();
+        const { count } = await supabaseAdmin
+          .from('students')
+          .select('id', { count: 'exact', head: true })
+          .eq('school_id', schoolId);
+        const sequence = String((count || 0) + 1).padStart(4, '0');
+        admissionNumber = `${year}-${sequence}`;
+      }
 
-    // Generate admission number
-    let admissionNumber = req.body.admissionNumber;
-    if (!admissionNumber) {
-      const year = new Date().getFullYear();
-      const { count } = await supabaseAdmin
+      const age = this.calculateAge(dateOfBirth);
+
+      // =============================================
+      // STEP 1: CREATE STUDENT
+      // =============================================
+      const { data: student, error: studentError } = await supabaseAdmin
         .from('students')
-        .select('id', { count: 'exact', head: true })
-        .eq('school_id', schoolId);
-      const sequence = String((count || 0) + 1).padStart(4, '0');
-      admissionNumber = `${year}-${sequence}`;
-    }
-
-    // Calculate age
-    const age = this.calculateAge(dateOfBirth);
-
-    // After student is created and parents are linked
-// Send notification to parents
-try {
-  const { data: school } = await supabaseAdmin
-    .from('schools')
-    .select('name')
-    .eq('id', schoolId)
-    .single();
-
-  await studentNotificationService.notifyStudentAdmitted({
-    schoolId,
-    school,
-    student,
-    adminName: 'School Admin'
-  });
-} catch (notifError) {
-  console.error('Send admission notification error:', notifError);
-}
-
-    // =============================================
-    // STEP 1: CREATE STUDENT
-    // =============================================
-    const { data: student, error: studentError } = await supabaseAdmin
-      .from('students')
-      .insert({
-        school_id: schoolId,
-        first_name: firstName,
-        middle_name: middleName || '',
-        last_name: lastName,
-        gender: gender,
-        date_of_birth: dateOfBirth,
-        age: age,
-        nationality: nationality || '',
-        state_of_origin: stateOfOrigin || '',
-        local_government: localGovernment || '',
-        religion: religion || '',
-        blood_group: bloodGroup || '',
-        genotype: genotype || '',
-        passport_url: passport || null,
-        birth_certificate_url: birthCertificate || null,
-        previous_school: previousSchool || '',
-        transfer_status: transferStatus || 'none',
-        admission_number: admissionNumber,
-        admission_session: admissionSession || '',
-        admission_term: admissionTerm || '',
-        current_session: currentSession || '',
-        class_id: classId,
-        current_arm: currentArm || '',
-        student_status: studentStatus || 'active',
-        boarding_status: boardingStatus || 'day',
-        house: house || '',
-        club: club || '',
-        sport: sport || '',
-        elective_subjects: parsedElectiveSubjects || [],
-        medical_conditions: medicalConditions || '',
-        allergies: allergies || '',
-        disabilities: disabilities || '',
-        medications: medications || '',
-        doctor_name: doctorName || '',
-        hospital: hospital || '',
-        emergency_instructions: emergencyInstructions || '',
-        admission_date: new Date(),
-        is_active: true,
-        created_by: adminId,
-        created_at: new Date()
-      })
-      .select()
-      .single();
-
-    if (studentError) {
-      console.error('Student insert error:', studentError);
-      return res.status(500).json({
-        status: 'error',
-        message: 'Failed to insert student: ' + studentError.message
-      });
-    }
-
-    console.log('Student created with ID:', student.id);
-
-    // =============================================
-    // STEP 1.5: CREATE STUDENT LOGIN (USER ACCOUNT)
-    // =============================================
-    if (studentEmail && studentPassword) {
-      console.log('Creating student login for:', studentEmail);
-      
-      const hashedPassword = await bcrypt.hash(studentPassword, 10);
-      
-      const { data: user, error: userError } = await supabaseAdmin
-        .from('users')
         .insert({
-          email: studentEmail,
-          password_hash: hashedPassword,
-          full_name: `${firstName} ${lastName}`,
-          role: 'student',
           school_id: schoolId,
+          first_name: firstName,
+          middle_name: middleName || '',
+          last_name: lastName,
+          gender: gender,
+          date_of_birth: dateOfBirth,
+          age: age,
+          nationality: nationality || '',
+          state_of_origin: stateOfOrigin || '',
+          local_government: localGovernment || '',
+          religion: religion || '',
+          blood_group: bloodGroup || '',
+          genotype: genotype || '',
+          passport_url: passport || null,
+          birth_certificate_url: birthCertificate || null,
+          previous_school: previousSchool || '',
+          transfer_status: transferStatus || 'none',
+          admission_number: admissionNumber,
+          admission_session: admissionSession || '',
+          admission_term: admissionTerm || '',
+          current_session: currentSession || '',
+          class_id: classId,
+          current_arm: currentArm || '',
+          student_status: studentStatus || 'active',
+          boarding_status: boardingStatus || 'day',
+          house: house || '',
+          club: club || '',
+          sport: sport || '',
+          elective_subjects: parsedElectiveSubjects || [],
+          medical_conditions: medicalConditions || '',
+          allergies: allergies || '',
+          disabilities: disabilities || '',
+          medications: medications || '',
+          doctor_name: doctorName || '',
+          hospital: hospital || '',
+          emergency_instructions: emergencyInstructions || '',
+          admission_date: new Date(),
           is_active: true,
-          is_verified: true,
           created_by: adminId,
           created_at: new Date()
         })
         .select()
         .single();
 
-      if (userError) {
-        console.error('User creation error:', userError);
-      } else {
-        console.log('User created with ID:', user.id);
-        
-        // Link student to user
-        await supabaseAdmin
-          .from('students')
-          .update({ user_id: user.id })
-          .eq('id', student.id);
-        
-        // Link user to student
-        await supabaseAdmin
+      if (studentError) {
+        console.error('Student insert error:', studentError);
+        return res.status(500).json({
+          status: 'error',
+          message: 'Failed to insert student: ' + studentError.message
+        });
+      }
+
+      console.log('Student created with ID:', student.id);
+
+      // =============================================
+      // STEP 1.5: CREATE STUDENT LOGIN (USER ACCOUNT)
+      // =============================================
+      let studentLoginCreated = false;
+      let studentLoginError = null;
+
+      if (studentEmail && studentPassword) {
+        console.log('Creating student login for:', studentEmail);
+
+        const hashedPassword = await bcrypt.hash(studentPassword, 10);
+
+        const { data: user, error: userError } = await supabaseAdmin
           .from('users')
-          .update({ student_id: student.id })
-          .eq('id', user.id);
+          .insert({
+            email: studentEmail,
+            password_hash: hashedPassword,
+            full_name: `${firstName} ${lastName}`,
+            phone: '',
+            role: 'student',
+            school_id: schoolId,
+            is_active: true,
+            is_verified: true,
+            created_by: adminId,
+            created_at: new Date()
+          })
+          .select()
+          .single();
+
+        if (userError) {
+          console.error('User creation error:', userError);
+          studentLoginError = userError.message;
+        } else {
+          console.log('User created with ID:', user.id);
+          studentLoginCreated = true;
+
+          await supabaseAdmin
+            .from('students')
+            .update({ user_id: user.id })
+            .eq('id', student.id);
+
+          await supabaseAdmin
+            .from('users')
+            .update({ student_id: student.id })
+            .eq('id', user.id);
+        }
       }
-    }
 
-    // =============================================
-    // STEP 2: LINK PARENTS
-    // =============================================
-    if (parsedParents && parsedParents.length > 0) {
-      console.log('Linking parents:', parsedParents.length);
-      for (const parent of parsedParents) {
-        try {
-          const firstName = parent.firstName || parent.first_name || '';
-          const lastName = parent.lastName || parent.last_name || '';
-          const relationship = parent.relationship || 'guardian';
-          const isPrimaryContact = !!(parent.isPrimaryContact ?? parent.is_primary_contact ?? false);
+      // =============================================
+      // STEP 2: LINK PARENTS
+      // =============================================
+       const createdParentLogins = [];
+      if (parsedParents && parsedParents.length > 0) {
+        console.log('Linking parents:', parsedParents.length);
+        for (const parent of parsedParents) {
+          try {
+            const pFirstName = parent.firstName || parent.first_name || '';
+            const pLastName = parent.lastName || parent.last_name || '';
+            const relationship = parent.relationship || 'guardian';
+            const isPrimaryContact = !!(parent.isPrimaryContact ?? parent.is_primary_contact ?? false);
 
-          let parentId = parent.id || null;
+                                 let parentId = parent.id || null;
 
-          if (!parentId) {
-            if (!firstName && !lastName && !parent.phone) {
-              console.warn('Skipping invalid parent payload:', parent);
-              continue;
+            if (!parentId) {
+              if (!pFirstName && !pLastName && !parent.phone) {
+                console.warn('Skipping invalid parent payload:', parent);
+                continue;
+              }
+
+              // ✅ Create login account for this parent if an email was provided
+              let parentUserId = null;
+              let parentTempPassword = null;
+
+              if (parent.email) {
+                const { data: existingUser } = await supabaseAdmin
+                  .from('users')
+                  .select('id')
+                  .ilike('email', parent.email)
+                  .maybeSingle();
+
+                if (existingUser) {
+                  parentUserId = existingUser.id;
+                } else {
+                  parentTempPassword = Math.random().toString(36).slice(-8);
+                  const hashedPassword = await bcrypt.hash(parentTempPassword, 10);
+
+                  const { data: newUser, error: userError } = await supabaseAdmin
+                    .from('users')
+                    .insert({
+                      email: parent.email,
+                      password_hash: hashedPassword,
+                      full_name: `${pFirstName} ${pLastName}`,
+                      phone: parent.phone || '',
+                      role: 'parent',
+                      school_id: schoolId,
+                      is_active: true,
+                      is_verified: true,
+                      created_by: adminId,
+                      created_at: new Date()
+                    })
+                    .select()
+                    .single();
+
+                  if (userError) {
+                    console.error('Parent user creation error:', userError);
+                  } else {
+                    parentUserId = newUser.id;
+                  }
+                }
+              }
+
+              const { data: newParent, error: parentError } = await supabaseAdmin
+                .from('parents')
+                .insert({
+                  school_id: schoolId,
+                  user_id: parentUserId,
+                  first_name: pFirstName,
+                  last_name: pLastName,
+                  email: parent.email || '',
+                  phone: parent.phone || '',
+                  relationship,
+                  address: parent.address || '',
+                  occupation: parent.occupation || '',
+                  employer: parent.employer || '',
+                  is_primary_contact: isPrimaryContact,
+                  is_active: true,
+                  created_by: adminId,
+                  created_at: new Date()
+                })
+                .select()
+                .single();
+
+              if (parentError) {
+                console.error('Parent insert error:', parentError);
+                continue;
+              }
+              parentId = newParent.id;
+
+              if (parentTempPassword) {
+                createdParentLogins.push({
+                  email: parent.email,
+                  tempPassword: parentTempPassword,
+                  name: `${pFirstName} ${pLastName}`
+                });
+              }
             }
 
-            const { data: newParent, error: parentError } = await supabaseAdmin
-              .from('parents')
+            await supabaseAdmin
+              .from('student_parents')
               .insert({
-                school_id: schoolId,
-                first_name: firstName,
-                last_name: lastName,
-                email: parent.email || '',
-                phone: parent.phone || '',
-                relationship,
-                address: parent.address || '',
-                occupation: parent.occupation || '',
-                employer: parent.employer || '',
+                student_id: student.id,
+                parent_id: parentId,
                 is_primary_contact: isPrimaryContact,
-                is_active: true,
-                created_by: adminId,
                 created_at: new Date()
-              })
-              .select()
-              .single();
-
-            if (parentError) {
-              console.error('Parent insert error:', parentError);
-              continue;
-            }
-            parentId = newParent.id;
+              });
+              
+          } catch (parentError) {
+            console.error('Parent processing error:', parentError);
           }
-
-          await supabaseAdmin
-            .from('student_parents')
-            .insert({
-              student_id: student.id,
-              parent_id: parentId,
-              is_primary_contact: isPrimaryContact,
-              created_at: new Date()
-            });
-        } catch (parentError) {
-          console.error('Parent processing error:', parentError);
         }
       }
-    }
 
-    // =============================================
-    // STEP 3: ADD DOCUMENTS
-    // =============================================
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        try {
-          const publicUrl = await storageService.uploadSchoolDocument(file, schoolId, 'student_documents');
-          await supabaseAdmin
-            .from('student_documents')
-            .insert({
-              student_id: student.id,
-              name: file.originalname,
-              file_url: publicUrl || '',
-              file_type: file.mimetype || '',
-              file_size: file.size || 0,
-              category: 'other',
-              uploaded_by: adminId,
-              uploaded_at: new Date()
-            });
-        } catch (docError) {
-          console.error('File upload processing error:', docError);
+      // =============================================
+      // STEP 3: ADD DOCUMENTS
+      // =============================================
+      if (req.files && req.files.length > 0) {
+        for (const file of req.files) {
+          try {
+            const publicUrl = await storageService.uploadSchoolDocument(file, schoolId, 'student_documents');
+            await supabaseAdmin
+              .from('student_documents')
+              .insert({
+                student_id: student.id,
+                name: file.originalname,
+                file_url: publicUrl || '',
+                file_type: file.mimetype || '',
+                file_size: file.size || 0,
+                category: 'other',
+                uploaded_by: adminId,
+                uploaded_at: new Date()
+              });
+          } catch (docError) {
+            console.error('File upload processing error:', docError);
+          }
         }
       }
-    }
 
-    if (documents && Array.isArray(documents) && documents.length > 0) {
-      for (const doc of documents) {
-        try {
-          await supabaseAdmin
-            .from('student_documents')
-            .insert({
-              student_id: student.id,
-              name: doc.name,
-              file_url: doc.fileUrl || '',
-              file_type: doc.fileType || '',
-              file_size: doc.fileSize || 0,
-              category: doc.category || 'other',
-              description: doc.description || '',
-              uploaded_by: adminId,
-              uploaded_at: new Date()
-            });
-        } catch (docError) {
-          console.error('Document processing error:', docError);
+      if (documents && Array.isArray(documents) && documents.length > 0) {
+        for (const doc of documents) {
+          try {
+            await supabaseAdmin
+              .from('student_documents')
+              .insert({
+                student_id: student.id,
+                name: doc.name,
+                file_url: doc.fileUrl || '',
+                file_type: doc.fileType || '',
+                file_size: doc.fileSize || 0,
+                category: doc.category || 'other',
+                description: doc.description || '',
+                uploaded_by: adminId,
+                uploaded_at: new Date()
+              });
+          } catch (docError) {
+            console.error('Document processing error:', docError);
+          }
         }
       }
-    }
 
-    // =============================================
-    // STEP 4: ADD STUDENT HISTORY
-    // =============================================
-    await this.addHistory(
-      student.id,
-      'ADMISSION',
-      `Student ${firstName} ${lastName} admitted with admission number ${admissionNumber}`,
-      { admission_number: admissionNumber, class: classId },
-      adminId
-    );
+      // =============================================
+      // STEP 4: ADD STUDENT HISTORY
+      // =============================================
+      await this.addHistory(
+        student.id,
+        'ADMISSION',
+        `Student ${firstName} ${lastName} admitted with admission number ${admissionNumber}`,
+        { admission_number: admissionNumber, class: classId },
+        adminId
+      );
 
-    // =============================================
-    // STEP 5: CREATE AUDIT LOG
-    // =============================================
-    await supabaseAdmin
-      .from('audit_logs')
-      .insert({
-        school_id: schoolId,
-        user_id: adminId,
-        action: 'REGISTER_STUDENT',
-        entity_type: 'student',
-        entity_id: student.id,
-        new_values: {
-          firstName,
-          lastName,
-          admission_number: admissionNumber,
-          class: classId
+      // =============================================
+      // STEP 5: CREATE AUDIT LOG
+      // =============================================
+      await supabaseAdmin
+        .from('audit_logs')
+        .insert({
+          school_id: schoolId,
+          user_id: adminId,
+          action: 'REGISTER_STUDENT',
+          entity_type: 'student',
+          entity_id: student.id,
+          new_values: {
+            firstName,
+            lastName,
+            admission_number: admissionNumber,
+            class: classId
+          }
+        });
+
+      // =============================================
+      // STEP 6: NOTIFY PARENTS (best-effort, non-blocking)
+      // =============================================
+      try {
+        const { data: school } = await supabaseAdmin
+          .from('schools')
+          .select('name')
+          .eq('id', schoolId)
+          .single();
+
+        await studentNotificationService.notifyStudentAdmitted({
+          schoolId,
+          school,
+          student,
+          adminName: 'School Admin'
+        });
+      } catch (notifError) {
+        console.error('Send admission notification error:', notifError);
+      }
+
+      console.log('Student registration complete!');
+
+            res.status(201).json({
+        status: 'success',
+        message: studentLoginCreated
+          ? `Student registered. Login created for ${studentEmail}`
+          : studentEmail
+            ? `Student registered, but login creation failed: ${studentLoginError}`
+            : 'Student registered successfully',
+        data: {
+          ...student,
+          loginCreated: studentLoginCreated,
+          parentLogins: createdParentLogins
         }
       });
-
-    console.log('Student registration complete!');
-
-    res.status(201).json({
-      status: 'success',
-      message: studentEmail ? `Student registered. Login created for ${studentEmail}` : 'Student registered successfully',
-      data: {
-        ...student,
-        loginCreated: !!studentEmail
-      }
-    });
-  } catch (error) {
-    console.error('Register Student Error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to register student: ' + error.message
-    });
+    } catch (error) {
+      console.error('Register Student Error:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to register student: ' + error.message
+      });
+    }
   }
-}
   // =============================================
   // UPDATE STUDENT
   // =============================================

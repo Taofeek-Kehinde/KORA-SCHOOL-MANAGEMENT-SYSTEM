@@ -94,7 +94,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4 relative overflow-hidden select-none">
       {/* Animated background circles */}
       <motion.div 
         className="absolute top-[-100px] right-[-100px] w-64 h-64 bg-blue-200 rounded-full opacity-20"
@@ -136,7 +136,7 @@ const Login = () => {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl max-w-md w-full p-8 border border-white/50 relative z-10"
+        className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl max-w-md w-full p-8 border border-white/50 relative z-10 select-none"
       >
         <div className="text-center mb-8">
           <motion.div 
@@ -154,10 +154,10 @@ const Login = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent"
+            className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent select-none"
             style={{ 
-              fontFamily: "'Poppins', 'Inter', system-ui, -apple-system, sans-serif",
-              textShadow: "0 2px 20px rgba(99, 102, 241, 0.15)"
+              fontFamily: "'Poppins', 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+              textShadow: "0 2px 25px rgba(99, 102, 241, 0.3), 0 4px 40px rgba(99, 102, 241, 0.15)"
             }}
           >
             Kora School Management
@@ -166,8 +166,11 @@ const Login = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="text-gray-500 mt-1 font-light min-h-[24px]"
-            style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
+            className="text-gray-500 mt-1 font-light min-h-[24px] select-none"
+            style={{ 
+              fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+              textShadow: "0 1px 10px rgba(0, 0, 0, 0.05)"
+            }}
           >
             {typedText}
           </motion.p>
@@ -182,8 +185,11 @@ const Login = () => {
           <div className="space-y-5">
             <div>
               <label 
-                className="block text-sm font-medium text-gray-700 mb-1.5"
-                style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
+                className="block text-sm font-medium text-gray-700 mb-1.5 select-none"
+                style={{ 
+                  fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+                  textShadow: "0 1px 6px rgba(0, 0, 0, 0.04)"
+                }}
               >
                 Email Address
               </label>
@@ -196,7 +202,7 @@ const Login = () => {
                   onChange={handleChange}
                   placeholder="admin@school.com"
                   className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 group-hover:border-blue-300"
-                  style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
+                  style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif" }}
                   required
                 />
               </div>
@@ -204,8 +210,11 @@ const Login = () => {
 
             <div>
               <label 
-                className="block text-sm font-medium text-gray-700 mb-1.5"
-                style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
+                className="block text-sm font-medium text-gray-700 mb-1.5 select-none"
+                style={{ 
+                  fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+                  textShadow: "0 1px 6px rgba(0, 0, 0, 0.04)"
+                }}
               >
                 Password
               </label>
@@ -218,7 +227,7 @@ const Login = () => {
                   onChange={handleChange}
                   placeholder="Enter your password"
                   className="w-full pl-10 pr-12 py-3 bg-gray-50/50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 group-hover:border-blue-300"
-                  style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
+                  style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif" }}
                   required
                 />
                 <button
@@ -235,16 +244,22 @@ const Login = () => {
               <label className="flex items-center gap-2 cursor-pointer group">
                 <input type="checkbox" className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 focus:ring-2 transition-all duration-200" />
                 <span 
-                  className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors duration-200"
-                  style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
+                  className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors duration-200 select-none"
+                  style={{ 
+                    fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+                    textShadow: "0 1px 6px rgba(0, 0, 0, 0.04)"
+                  }}
                 >
                   Remember me
                 </span>
               </label>
               <Link 
                 to="/forgot-password" 
-                className="text-sm text-blue-600 hover:text-indigo-600 hover:underline transition-all duration-200 font-medium"
-                style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
+                className="text-sm text-blue-600 hover:text-indigo-600 hover:underline transition-all duration-200 font-medium select-none"
+                style={{ 
+                  fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+                  textShadow: "0 1px 6px rgba(0, 0, 0, 0.04)"
+                }}
               >
                 Forgot password?
               </Link>
@@ -255,8 +270,11 @@ const Login = () => {
               whileTap={{ scale: loading ? 1 : 0.98 }}
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300 disabled:opacity-70 flex items-center justify-center gap-2 font-medium text-base"
-              style={{ fontFamily: "'Poppins', 'Inter', system-ui, -apple-system, sans-serif" }}
+              className="w-full py-3.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300 disabled:opacity-70 flex items-center justify-center gap-2 font-medium text-base select-none"
+              style={{ 
+                fontFamily: "'Poppins', 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+                textShadow: "0 2px 12px rgba(255, 255, 255, 0.3)"
+              }}
             >
               {loading ? (
                 <>
@@ -277,8 +295,11 @@ const Login = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="mt-6 text-center text-sm text-gray-500"
-          style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
+          className="mt-6 text-center text-sm text-gray-500 select-none"
+          style={{ 
+            fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+            textShadow: "0 1px 6px rgba(0, 0, 0, 0.04)"
+          }}
         >
           Don't have an account?{' '}
           <Link 
@@ -293,8 +314,11 @@ const Login = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400"
-          style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
+          className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400 select-none"
+          style={{ 
+            fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
+            textShadow: "0 1px 6px rgba(0, 0, 0, 0.04)"
+          }}
         >
           <FaGraduationCap />
           <span>Secure • Encrypted • Trusted</span>
