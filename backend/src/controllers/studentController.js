@@ -1,6 +1,4 @@
 const { supabaseAdmin } = require('../config/supabase');
-const studentNotificationService = require('../services/studentNotificationService');
-
 
 class StudentController {
   // =============================================
@@ -15,10 +13,7 @@ class StudentController {
         .from('students')
         .select(`
           *,
-          classes!class_id(name, level),
-          parents:student_parents(
-            parents!parent_id(first_name, last_name, email, phone)
-          )
+          classes!class_id(name, level)
         `)
         .eq('school_id', schoolId)
         .eq('is_active', true)
@@ -32,18 +27,48 @@ class StudentController {
         query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,admission_number.ilike.%${search}%`);
       }
 
-      const { data, error, count } = await query
+      const { data, error } = await query
         .range(offset, offset + limit - 1);
 
       if (error) throw error;
 
+      // Get parents for each student separately
+      const studentIds = data?.map(s => s.id) || [];
+      let parentMap = {};
+      
+      if (studentIds.length > 0) {
+        const { data: studentParents } = await supabaseAdmin
+          .from('student_parents')
+          .select(`
+            student_id,
+            parents:parent_id(id, first_name, last_name, email, phone)
+          `)
+          .in('student_id', studentIds);
+
+        if (studentParents) {
+          studentParents.forEach(sp => {
+            if (!parentMap[sp.student_id]) {
+              parentMap[sp.student_id] = [];
+            }
+            if (sp.parents) {
+              parentMap[sp.student_id].push(sp.parents);
+            }
+          });
+        }
+      }
+
+      // Combine data
+      const result = (data || []).map(student => ({
+        ...student,
+        parents: parentMap[student.id] || []
+      }));
+
       res.status(200).json({
         status: 'success',
-        data: data || [],
+        data: result || [],
         pagination: {
           limit: parseInt(limit),
-          offset: parseInt(offset),
-          total: count
+          offset: parseInt(offset)
         }
       });
     } catch (error) {
@@ -63,26 +88,49 @@ class StudentController {
     try {
       const { schoolId, studentId } = req.params;
 
-      const { data, error } = await supabaseAdmin
+      // Get student
+      const { data: student, error: studentError } = await supabaseAdmin
         .from('students')
         .select(`
           *,
-          classes!class_id(name, level),
-          parents:student_parents(
-            parents!parent_id(first_name, last_name, email, phone, relationship)
-          ),
-          invoices!invoices_student_id_fkey(id, total_amount, status, due_date),
-          attendance!attendance_student_id_fkey(id, date, status)
+          classes!class_id(id, name, level)
         `)
         .eq('id', studentId)
         .eq('school_id', schoolId)
         .single();
 
-      if (error) throw error;
+      if (studentError) throw studentError;
+
+      // Get parents
+      const { data: studentParents } = await supabaseAdmin
+        .from('student_parents')
+        .select(`
+          parents!parent_id(id, first_name, last_name, email, phone, relationship)
+        `)
+        .eq('student_id', studentId);
+
+      // Get invoices
+      const { data: invoices } = await supabaseAdmin
+        .from('invoices')
+        .select('id, total_amount, status, due_date')
+        .eq('student_id', studentId);
+
+      // Get attendance
+      const { data: attendance } = await supabaseAdmin
+        .from('attendance')
+        .select('id, date, status')
+        .eq('student_id', studentId);
+
+      const result = {
+        ...student,
+        parents: (studentParents || []).map(sp => sp.parents).filter(Boolean),
+        invoices: invoices || [],
+        attendance: attendance || []
+      };
 
       res.status(200).json({
         status: 'success',
-        data
+        data: result
       });
     } catch (error) {
       console.error('Get Student Error:', error);
@@ -117,7 +165,6 @@ class StudentController {
       } = req.body;
       const { adminId } = req.user;
 
-      // Validation
       if (!firstName || !lastName || !dateOfBirth || !gender) {
         return res.status(400).json({
           status: 'error',
@@ -125,7 +172,6 @@ class StudentController {
         });
       }
 
-      // Generate admission number if not provided
       let admissionNumberFinal = admissionNumber;
       if (!admissionNumberFinal) {
         const year = new Date().getFullYear();
@@ -138,7 +184,6 @@ class StudentController {
         admissionNumberFinal = `${year}-${sequence}`;
       }
 
-      // Create student
       const { data: student, error: studentError } = await supabaseAdmin
         .from('students')
         .insert({
@@ -165,7 +210,6 @@ class StudentController {
 
       if (studentError) throw studentError;
 
-      // Link parents
       if (parentIds && parentIds.length > 0) {
         const parentLinks = parentIds.map(parentId => ({
           student_id: student.id,
@@ -177,22 +221,8 @@ class StudentController {
         await supabaseAdmin
           .from('student_parents')
           .insert(parentLinks);
-
-        const { data: school } = await supabaseAdmin
-          .from('schools')
-          .select('name')
-          .eq('id', schoolId)
-          .single();
-
-        await studentNotificationService.notifyStudentAdmitted({
-          schoolId,
-          school,
-          student,
-          adminName: req.user?.fullName || 'School Administrator'
-        });
       }
 
-      // Create audit log
       await supabaseAdmin
         .from('audit_logs')
         .insert({
@@ -258,25 +288,6 @@ class StudentController {
       if (isActive !== undefined) updateData.is_active = isActive;
       updateData.updated_at = new Date();
 
-      // After student is updated
-try {
-  const { data: school } = await supabaseAdmin
-    .from('schools')
-    .select('name')
-    .eq('id', schoolId)
-    .single();
-
-  const changedFields = Object.keys(mappedData).join(', ');
-
-  await studentNotificationService.notifyProfileUpdated({
-    schoolId,
-    school,
-    student,
-    changes: `Updated fields: ${changedFields}`
-  });
-} catch (notifError) {
-  console.error('Send profile update notification error:', notifError);
-}
       const { data: student, error } = await supabaseAdmin
         .from('students')
         .update(updateData)
@@ -287,7 +298,6 @@ try {
 
       if (error) throw error;
 
-      // Create audit log
       await supabaseAdmin
         .from('audit_logs')
         .insert({
@@ -315,20 +325,21 @@ try {
   }
 
   // =============================================
-  // DELETE STUDENT
+  // DELETE STUDENT (Soft Delete)
   // =============================================
   async deleteStudent(req, res) {
     try {
       const { schoolId, studentId } = req.params;
       const { adminId } = req.user;
 
-      await supabaseAdmin
+      const { error } = await supabaseAdmin
         .from('students')
         .update({ is_active: false, updated_at: new Date() })
         .eq('id', studentId)
         .eq('school_id', schoolId);
 
-      // Create audit log
+      if (error) throw error;
+
       await supabaseAdmin
         .from('audit_logs')
         .insert({
@@ -354,13 +365,13 @@ try {
   }
 
   // =============================================
-  // BULK IMPORT STUDENTS (V2 - Placeholder)
+  // BULK IMPORT STUDENTS
   // =============================================
   async bulkImportStudents(req, res) {
     try {
       res.status(200).json({
         status: 'success',
-        message: 'Bulk import feature coming soon in V2',
+        message: 'Bulk import feature coming soon',
         data: null
       });
     } catch (error) {

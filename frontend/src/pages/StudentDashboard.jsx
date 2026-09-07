@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../hooks/useAuth";
 import api from "../utils/api";
 import { FaSpinner } from "react-icons/fa";
-import HomeworkSubmitModal from '../components/HomeworkSubmitModal';
+import HomeworkSubmitModal from './Student/HomeworkSubmitModal';
 
 const StudentDashboard = () => {
   const { user } = useAuth();

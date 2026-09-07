@@ -460,32 +460,61 @@ class AcademicStructureController {
   // =============================================
   // CLASS ARMS
   // =============================================
-  getClassArms = async (req, res) => {
-    try {
-      const { schoolId } = req.params;
-      const { classId } = req.query;
+// =============================================
+// GET CLASS ARMS
+// =============================================
+getClassArms = async (req, res) => {
+  try {
+    const { schoolId } = req.params;
+    const { classId } = req.query;
 
-      let query = supabaseAdmin
-        .from('class_arms')
-        .select(`
-          *,
-          classes!class_id(id, name, level),
-          teachers!class_teacher_id(id, first_name, last_name)
-        `)
-        .eq('school_id', schoolId)
-        .eq('is_active', true);
+    // Get class arms first
+    let query = supabaseAdmin
+      .from('class_arms')
+      .select('*')
+      .eq('school_id', schoolId)
+      .eq('is_active', true);
 
-      if (classId) query = query.eq('class_id', classId);
+    if (classId) query = query.eq('class_id', classId);
 
-      const { data, error } = await query.order('name', { ascending: true });
-      if (error) throw error;
-      res.status(200).json({ status: 'success', data: data || [] });
-    } catch (error) {
-      console.error('Get Class Arms Error:', error);
-      res.status(500).json({ status: 'error', message: 'Failed to get class arms', error: error.message });
+    const { data: arms, error: armsError } = await query.order('name', { ascending: true });
+    if (armsError) throw armsError;
+
+    // Get classes separately
+    const classIds = [...new Set(arms?.map(a => a.class_id).filter(Boolean))];
+    let classMap = {};
+    if (classIds.length > 0) {
+      const { data: classes } = await supabaseAdmin
+        .from('classes')
+        .select('id, name, level')
+        .in('id', classIds);
+      classes?.forEach(c => { classMap[c.id] = c; });
     }
-  };
 
+    // Get teachers separately
+    const teacherIds = [...new Set(arms?.map(a => a.class_teacher_id).filter(Boolean))];
+    let teacherMap = {};
+    if (teacherIds.length > 0) {
+      const { data: teachers } = await supabaseAdmin
+        .from('teachers')
+        .select('id, first_name, last_name')
+        .in('id', teacherIds);
+      teachers?.forEach(t => { teacherMap[t.id] = t; });
+    }
+
+    // Combine data
+    const result = (arms || []).map(arm => ({
+      ...arm,
+      classes: classMap[arm.class_id] || null,
+      teachers: teacherMap[arm.class_teacher_id] || null
+    }));
+
+    res.status(200).json({ status: 'success', data: result || [] });
+  } catch (error) {
+    console.error('Get Class Arms Error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to get class arms', error: error.message });
+  }
+};
   createClassArm = async (req, res) => {
     try {
       const { schoolId } = req.params;

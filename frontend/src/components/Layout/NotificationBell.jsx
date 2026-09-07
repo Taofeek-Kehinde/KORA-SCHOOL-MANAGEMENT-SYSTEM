@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../utils/api';
@@ -21,7 +22,9 @@ const NotificationBell = () => {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const buttonRef = useRef(null);
   const dropdownRef = useRef(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, right: 0 });
 
   // Determine which ID to use based on role
   const getNotificationParams = () => {
@@ -54,7 +57,7 @@ const NotificationBell = () => {
       return response.data;
     },
     enabled: !!user?.id,
-    refetchInterval: 15000,
+    refetchInterval: 60000,
   });
 
   // Fetch unread count
@@ -107,16 +110,50 @@ const NotificationBell = () => {
   const notifications = notificationsData?.data || [];
   const unreadCount = unreadData?.data?.unread_count || 0;
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (checks both the button and the portaled dropdown)
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      const clickedButton = buttonRef.current && buttonRef.current.contains(event.target);
+      const clickedDropdown = dropdownRef.current && dropdownRef.current.contains(event.target);
+      if (!clickedButton && !clickedDropdown) {
         setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Recalculate position on scroll/resize while open
+  useEffect(() => {
+    if (!isOpen) return;
+    const updatePosition = () => {
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        setDropdownPos({
+          top: rect.bottom + window.scrollY + 8,
+          right: window.innerWidth - rect.right
+        });
+      }
+    };
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen]);
+
+  const handleToggle = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + window.scrollY + 8,
+        right: window.innerWidth - rect.right
+      });
+    }
+    setIsOpen(!isOpen);
+  };
 
   // Get notification icon based on type
   const getNotificationIcon = (type) => {
@@ -162,10 +199,11 @@ const NotificationBell = () => {
   const displayedNotifications = showAll ? notifications : notifications.slice(0, 8);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative">
       {/* Bell Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={handleToggle}
         className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
         aria-label="Notifications"
       >
@@ -179,9 +217,13 @@ const NotificationBell = () => {
         )}
       </button>
 
-      {/* Dropdown Panel */}
-      {isOpen && (
-          <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 z-[9999] max-h-[600px] flex flex-col">
+      {/* Dropdown Panel — rendered via portal to escape any parent overflow/z-index traps */}
+      {isOpen && ReactDOM.createPortal(
+        <div
+          ref={dropdownRef}
+          style={{ position: 'fixed', top: dropdownPos.top, right: dropdownPos.right, zIndex: 999999 }}
+          className="w-96 bg-white rounded-xl shadow-2xl border border-gray-200 max-h-[600px] flex flex-col"
+        >
           {/* Header */}
           <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
             <div>
@@ -252,7 +294,8 @@ const NotificationBell = () => {
               </button>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

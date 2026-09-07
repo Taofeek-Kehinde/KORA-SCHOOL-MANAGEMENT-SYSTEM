@@ -59,6 +59,60 @@ class ExamController {
     }
   };
 
+    // =============================================
+  // DELETE EXAM (and its questions/results)
+  // =============================================
+  deleteExam = async (req, res) => {
+    try {
+      const { schoolId, examId } = req.params;
+
+      // Confirm the exam belongs to this school
+      const { data: exam, error: examFetchError } = await supabaseAdmin
+        .from('exams')
+        .select('id')
+        .eq('id', examId)
+        .eq('school_id', schoolId)
+        .single();
+
+      if (examFetchError || !exam) {
+        return res.status(404).json({ status: 'error', message: 'Exam not found' });
+      }
+
+      // Delete dependent exam_results first
+      const { error: resultsError } = await supabaseAdmin
+        .from('exam_results')
+        .delete()
+        .eq('exam_id', examId);
+
+      if (resultsError) throw resultsError;
+
+      // Delete dependent exam_questions
+      const { error: questionsError } = await supabaseAdmin
+        .from('exam_questions')
+        .delete()
+        .eq('exam_id', examId);
+
+      if (questionsError) throw questionsError;
+
+      // Now delete the exam itself
+      const { error: deleteError } = await supabaseAdmin
+        .from('exams')
+        .delete()
+        .eq('id', examId)
+        .eq('school_id', schoolId);
+
+      if (deleteError) throw deleteError;
+
+      res.status(200).json({
+        status: 'success',
+        message: 'Exam deleted successfully'
+      });
+    } catch (error) {
+      console.error('Delete Exam Error:', error);
+      res.status(500).json({ status: 'error', message: 'Failed to delete exam', error: error.message });
+    }
+  };
+
   // =============================================
   // GET EXAMS FOR CLASS
   // =============================================

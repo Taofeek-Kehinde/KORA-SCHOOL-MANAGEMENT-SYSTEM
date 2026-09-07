@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import api from '../utils/api';
+import api from '../../utils/api';
 import { FaTimes, FaSpinner, FaCheck, FaBook, FaCalendarAlt, FaChalkboardTeacher } from 'react-icons/fa';
 
 const HomeworkSubmitModal = ({ homeworkEntry, studentId, onClose }) => {
@@ -10,6 +10,7 @@ const HomeworkSubmitModal = ({ homeworkEntry, studentId, onClose }) => {
 
   const hw = homeworkEntry?.homework || {};
   const isAlreadySubmitted = homeworkEntry?.status === 'submitted';
+  const hasScore = homeworkEntry?.score !== null && homeworkEntry?.score !== undefined;
 
   useEffect(() => {
     if (homeworkEntry?.submission_text) {
@@ -75,7 +76,6 @@ const HomeworkSubmitModal = ({ homeworkEntry, studentId, onClose }) => {
           </button>
         </div>
 
-        {/* Assignment description / questions */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-1">Assignment Details</label>
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 whitespace-pre-wrap text-gray-800">
@@ -83,24 +83,40 @@ const HomeworkSubmitModal = ({ homeworkEntry, studentId, onClose }) => {
           </div>
         </div>
 
-        {/* Status badge */}
-        <div className="mb-4">
+        <div className="mb-4 flex items-center gap-3">
           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
             isAlreadySubmitted ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
           }`}>
-            {isAlreadySubmitted ? 'Already Submitted' : 'Not Submitted Yet'}
+            {isAlreadySubmitted ? 'Submitted' : 'Pending'}
           </span>
+          
+          {isAlreadySubmitted && hasScore && (
+            <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              Score: {homeworkEntry.score}/{homeworkEntry.max_score || 100}
+            </span>
+          )}
         </div>
 
-        {/* Answer box */}
+        {isAlreadySubmitted && homeworkEntry.teacher_feedback && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm font-medium text-blue-800">Teacher Feedback:</p>
+            <p className="text-sm text-gray-700">{homeworkEntry.teacher_feedback}</p>
+          </div>
+        )}
+
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Your Answer</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {isAlreadySubmitted ? 'Your Submission' : 'Your Answer'}
+          </label>
           <textarea
             value={submissionText}
             onChange={(e) => setSubmissionText(e.target.value)}
             rows="8"
+            readOnly={isAlreadySubmitted}
             placeholder="Type your answer here..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-kora-primary"
+            className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-kora-primary ${
+              isAlreadySubmitted ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
           />
         </div>
 
@@ -110,17 +126,19 @@ const HomeworkSubmitModal = ({ homeworkEntry, studentId, onClose }) => {
             onClick={onClose}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
           >
-            Cancel
+            {isAlreadySubmitted ? 'Close' : 'Cancel'}
           </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={submitMutation.isLoading}
-            className="px-4 py-2 bg-kora-primary text-white rounded-lg hover:bg-kora-secondary disabled:opacity-50 flex items-center gap-2"
-          >
-            {submitMutation.isLoading ? <FaSpinner className="animate-spin" /> : <FaCheck />}
-            {isAlreadySubmitted ? 'Update Submission' : 'Submit Assignment'}
-          </button>
+          {!isAlreadySubmitted && (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitMutation.isLoading}
+              className="px-4 py-2 bg-kora-primary text-white rounded-lg hover:bg-kora-secondary disabled:opacity-50 flex items-center gap-2"
+            >
+              {submitMutation.isLoading ? <FaSpinner className="animate-spin" /> : <FaCheck />}
+              Submit Assignment
+            </button>
+          )}
         </div>
       </div>
     </div>

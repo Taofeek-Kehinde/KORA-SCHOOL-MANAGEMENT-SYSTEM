@@ -94,35 +94,42 @@ class HomeworkController {
   // =============================================
   // GET STUDENT HOMEWORK
   // =============================================
-  getStudentHomework = async (req, res) => {
-    try {
-      const { studentId } = req.params;
+// =============================================
+// GET STUDENT HOMEWORK
+// =============================================
+getStudentHomework = async (req, res) => {
+  try {
+    const { studentId } = req.params;
 
-      const { data, error } = await supabaseAdmin
-        .from('student_homework')
-        .select(`
-          *,
-          homework!homework_id(
-            id, title, description, due_date,
-            subjects!subject_id(name, code),
-            teachers!teacher_id(first_name, last_name)
-          )
-        `)
-        .eq('student_id', studentId)
-        .order('assigned_at', { ascending: false });
+    const { data, error } = await supabaseAdmin
+      .from('student_homework')
+      .select(`
+        *,
+        homework!homework_id(
+          id, 
+          title, 
+          description, 
+          due_date,
+          subject_id,
+          teacher_id,
+          subjects:subject_id(name, code),
+          teachers:teacher_id(first_name, last_name)
+        )
+      `)
+      .eq('student_id', studentId)
+      .order('assigned_at', { ascending: false });
 
-      if (error) throw error;
+    if (error) throw error;
 
-      res.status(200).json({
-        status: 'success',
-        data: data || []
-      });
-    } catch (error) {
-      console.error('Get Student Homework Error:', error);
-      res.status(500).json({ status: 'error', message: 'Failed to get homework', error: error.message });
-    }
-  };
-
+    res.status(200).json({
+      status: 'success',
+      data: data || []
+    });
+  } catch (error) {
+    console.error('Get Student Homework Error:', error);
+    res.status(500).json({ status: 'error', message: 'Failed to get homework', error: error.message });
+  }
+};
     // =============================================
   // GET SUBMISSIONS FOR A HOMEWORK (Teacher view)
   // =============================================
@@ -190,7 +197,7 @@ class HomeworkController {
       res.status(500).json({ status: 'error', message: 'Failed to grade submission', error: error.message });
     }
   };
-  
+
 
   // =============================================
   // UPDATE HOMEWORK STATUS (Student)

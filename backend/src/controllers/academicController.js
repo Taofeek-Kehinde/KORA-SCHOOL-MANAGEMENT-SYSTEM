@@ -33,90 +33,88 @@ class AcademicController {
   }
 
   // =============================================
-// CREATE ACADEMIC SESSION - FIXED
-// =============================================
-async createSession(req, res) {
-  try {
-    const { schoolId } = req.params;
-    const { name, startDate, endDate, isCurrent } = req.body;
-    
-    console.log('=== CREATE SESSION ===');
-    console.log('School ID:', schoolId);
-    console.log('Body:', req.body);
-    console.log('User:', req.user);
+  // CREATE ACADEMIC SESSION - FIXED
+  // =============================================
+  async createSession(req, res) {
+    try {
+      const { schoolId } = req.params;
+      const { name, startDate, endDate, isCurrent } = req.body;
 
-    // Get admin ID from user
-    const adminId = req.user?.id;
-    if (!adminId) {
-      console.error('No admin ID found in request');
-      return res.status(401).json({
-        status: 'error',
-        message: 'User not authenticated'
-      });
-    }
+      console.log('=== CREATE SESSION ===');
+      console.log('School ID:', schoolId);
+      console.log('Body:', req.body);
+      console.log('User:', req.user);
 
-    if (!name || !startDate || !endDate) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Name, start date, and end date are required'
-      });
-    }
+      const adminId = req.user?.id;
+      if (!adminId) {
+        console.error('No admin ID found in request');
+        return res.status(401).json({
+          status: 'error',
+          message: 'User not authenticated'
+        });
+      }
 
-    // If setting as current, unset other current sessions
-    if (isCurrent) {
-      await supabaseAdmin
+      if (!name || !startDate || !endDate) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Name, start date, and end date are required'
+        });
+      }
+
+      if (isCurrent) {
+        await supabaseAdmin
+          .from('academic_sessions')
+          .update({ is_current: false })
+          .eq('school_id', schoolId);
+      }
+
+      const { data, error } = await supabaseAdmin
         .from('academic_sessions')
-        .update({ is_current: false })
-        .eq('school_id', schoolId);
-    }
-
-    const { data, error } = await supabaseAdmin
-      .from('academic_sessions')
-      .insert({
-        school_id: schoolId,
-        name,
-        start_date: startDate,
-        end_date: endDate,
-        is_current: isCurrent || false,
-        is_active: true,
-        created_by: adminId,
-        created_at: new Date()
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Insert error:', error);
-      throw error;
-    }
-
-    // Update school's academic session
-    if (isCurrent) {
-      await supabaseAdmin
-        .from('schools')
-        .update({
-          academic_session: name,
-          updated_at: new Date()
+        .insert({
+          school_id: schoolId,
+          name,
+          start_date: startDate,
+          end_date: endDate,
+          is_current: isCurrent || false,
+          is_active: true,
+          created_by: adminId,
+          created_at: new Date()
         })
-        .eq('id', schoolId);
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Insert error:', error);
+        throw error;
+      }
+
+      if (isCurrent) {
+        await supabaseAdmin
+          .from('schools')
+          .update({
+            academic_session: name,
+            updated_at: new Date()
+          })
+          .eq('id', schoolId);
+      }
+
+      console.log('Session created:', data);
+
+      res.status(201).json({
+        status: 'success',
+        message: 'Academic session created successfully',
+        data
+      });
+    } catch (error) {
+      console.error('Create Session Error:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to create academic session',
+        error: error.message
+      });
     }
-
-    console.log('Session created:', data);
-
-    res.status(201).json({
-      status: 'success',
-      message: 'Academic session created successfully',
-      data
-    });
-  } catch (error) {
-    console.error('Create Session Error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to create academic session',
-      error: error.message
-    });
   }
-}
+
   // Update academic session
   async updateSession(req, res) {
     try {
@@ -137,7 +135,6 @@ async createSession(req, res) {
       if (isActive !== undefined) updateData.is_active = isActive;
       updateData.updated_at = new Date();
 
-      // If setting as current, unset other current sessions
       if (isCurrent) {
         await supabaseAdmin
           .from('academic_sessions')
@@ -159,7 +156,6 @@ async createSession(req, res) {
 
       if (error) throw error;
 
-      // Update school's academic session if current
       if (isCurrent && name) {
         await supabaseAdmin
           .from('schools')
@@ -218,169 +214,165 @@ async createSession(req, res) {
   // =============================================
 
   // =============================================
-// GET TERMS - FIXED
-// =============================================
-async getTerms(req, res) {
-  try {
-    const { schoolId } = req.params;
-    const { sessionId } = req.query;
+  // GET TERMS - FIXED
+  // =============================================
+  async getTerms(req, res) {
+    try {
+      const { schoolId } = req.params;
+      const { sessionId } = req.query;
 
-    let query = supabaseAdmin
-      .from('terms')
-      .select('*')
-      .eq('school_id', schoolId);
+      let query = supabaseAdmin
+        .from('terms')
+        .select('*')
+        .eq('school_id', schoolId);
 
-    if (sessionId) {
-      query = query.eq('session_id', sessionId);
-    }
+      if (sessionId) {
+        query = query.eq('session_id', sessionId);
+      }
 
-    // Try ordering by 'order' column, fallback to 'created_at'
-    const { data, error } = await query
-      .order('order', { ascending: true, nullsLast: true });
+      const { data, error } = await query
+        .order('order', { ascending: true, nullsLast: true });
 
-    if (error) {
-      // If 'order' column doesn't exist, order by name
-      const { data: fallbackData, error: fallbackError } = await query
-        .order('name', { ascending: true });
+      if (error) {
+        const { data: fallbackData, error: fallbackError } = await query
+          .order('name', { ascending: true });
 
-      if (fallbackError) throw fallbackError;
-      
-      return res.status(200).json({
+        if (fallbackError) throw fallbackError;
+
+        return res.status(200).json({
+          status: 'success',
+          data: fallbackData || []
+        });
+      }
+
+      res.status(200).json({
         status: 'success',
-        data: fallbackData || []
+        data: data || []
+      });
+    } catch (error) {
+      console.error('Get Terms Error:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to fetch terms',
+        error: error.message
       });
     }
-
-    res.status(200).json({
-      status: 'success',
-      data: data || []
-    });
-  } catch (error) {
-    console.error('Get Terms Error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to fetch terms',
-      error: error.message
-    });
   }
-}
-
-// =============================================
-// GET TEACHERS (For dropdown in modals)
-// =============================================
-async getTeachers(req, res) {
-  try {
-    const { schoolId } = req.params;
-
-    const { data, error } = await supabaseAdmin
-      .from('teachers')
-      .select('id, first_name, last_name, email')
-      .eq('school_id', schoolId)
-      .eq('is_active', true)
-      .order('first_name', { ascending: true });
-
-    if (error) throw error;
-
-    res.status(200).json({
-      status: 'success',
-      data: data || []
-    });
-  } catch (error) {
-    console.error('Get Teachers Error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to fetch teachers',
-      error: error.message
-    });
-  }
-}
 
   // =============================================
-// CREATE TERM - FIXED
-// =============================================
-async createTerm(req, res) {
-  try {
-    const { schoolId } = req.params;
-    const { sessionId, name, order, startDate, endDate, isCurrent } = req.body;
-    
-    console.log('=== CREATE TERM ===');
-    console.log('School ID:', schoolId);
-    console.log('Body:', req.body);
-    console.log('User:', req.user);
+  // GET TEACHERS (For dropdown in modals)
+  // =============================================
+  async getTeachers(req, res) {
+    try {
+      const { schoolId } = req.params;
 
-    const adminId = req.user?.id;
-    if (!adminId) {
-      console.error('No admin ID found in request');
-      return res.status(401).json({
+      const { data, error } = await supabaseAdmin
+        .from('teachers')
+        .select('id, first_name, last_name, email')
+        .eq('school_id', schoolId)
+        .eq('is_active', true)
+        .order('first_name', { ascending: true });
+
+      if (error) throw error;
+
+      res.status(200).json({
+        status: 'success',
+        data: data || []
+      });
+    } catch (error) {
+      console.error('Get Teachers Error:', error);
+      res.status(500).json({
         status: 'error',
-        message: 'User not authenticated'
+        message: 'Failed to fetch teachers',
+        error: error.message
       });
     }
-
-    if (!name || !sessionId) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Name and session ID are required'
-      });
-    }
-
-    // If setting as current, unset other current terms
-    if (isCurrent) {
-      await supabaseAdmin
-        .from('terms')
-        .update({ is_current: false })
-        .eq('school_id', schoolId);
-    }
-
-    const { data, error } = await supabaseAdmin
-      .from('terms')
-      .insert({
-        school_id: schoolId,
-        session_id: sessionId,
-        name,
-        order: order || 0,
-        start_date: startDate || null,
-        end_date: endDate || null,
-        is_current: isCurrent || false,
-        is_active: true,
-        created_by: adminId,
-        created_at: new Date()
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Insert error:', error);
-      throw error;
-    }
-
-    // Update school's current term
-    if (isCurrent) {
-      await supabaseAdmin
-        .from('schools')
-        .update({
-          current_term: name,
-          updated_at: new Date()
-        })
-        .eq('id', schoolId);
-    }
-
-    console.log('Term created:', data);
-
-    res.status(201).json({
-      status: 'success',
-      message: 'Term created successfully',
-      data
-    });
-  } catch (error) {
-    console.error('Create Term Error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to create term',
-      error: error.message
-    });
   }
-}
+
+  // =============================================
+  // CREATE TERM - FIXED
+  // =============================================
+  async createTerm(req, res) {
+    try {
+      const { schoolId } = req.params;
+      const { sessionId, name, order, startDate, endDate, isCurrent } = req.body;
+
+      console.log('=== CREATE TERM ===');
+      console.log('School ID:', schoolId);
+      console.log('Body:', req.body);
+      console.log('User:', req.user);
+
+      const adminId = req.user?.id;
+      if (!adminId) {
+        console.error('No admin ID found in request');
+        return res.status(401).json({
+          status: 'error',
+          message: 'User not authenticated'
+        });
+      }
+
+      if (!name || !sessionId) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Name and session ID are required'
+        });
+      }
+
+      if (isCurrent) {
+        await supabaseAdmin
+          .from('terms')
+          .update({ is_current: false })
+          .eq('school_id', schoolId);
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from('terms')
+        .insert({
+          school_id: schoolId,
+          session_id: sessionId,
+          name,
+          order: order || 0,
+          start_date: startDate || null,
+          end_date: endDate || null,
+          is_current: isCurrent || false,
+          is_active: true,
+          created_by: adminId,
+          created_at: new Date()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Insert error:', error);
+        throw error;
+      }
+
+      if (isCurrent) {
+        await supabaseAdmin
+          .from('schools')
+          .update({
+            current_term: name,
+            updated_at: new Date()
+          })
+          .eq('id', schoolId);
+      }
+
+      console.log('Term created:', data);
+
+      res.status(201).json({
+        status: 'success',
+        message: 'Term created successfully',
+        data
+      });
+    } catch (error) {
+      console.error('Create Term Error:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to create term',
+        error: error.message
+      });
+    }
+  }
 
   // Update term
   async updateTerm(req, res) {
@@ -505,7 +497,6 @@ async createTerm(req, res) {
 
       if (error) throw error;
 
-      // Get student count for each class
       const classesWithCounts = await Promise.all((data || []).map(async (cls) => {
         const { count, error: countError } = await supabaseAdmin
           .from('students')
@@ -553,7 +544,6 @@ async createTerm(req, res) {
         });
       }
 
-      // Check if class already exists
       const { data: existing, error: checkError } = await supabaseAdmin
         .from('classes')
         .select('id')
@@ -655,7 +645,6 @@ async createTerm(req, res) {
       const { schoolId, classId } = req.params;
       const { adminId } = req.user;
 
-      // Check if class has students
       const { count: studentCount, error: countError } = await supabaseAdmin
         .from('students')
         .select('id', { count: 'exact', head: true })
@@ -710,7 +699,6 @@ async createTerm(req, res) {
 
       if (error) throw error;
 
-      // Get class count for each subject
       const subjectsWithCounts = await Promise.all((data || []).map(async (subject) => {
         const { count, error: countError } = await supabaseAdmin
           .from('class_subjects')
@@ -757,7 +745,6 @@ async createTerm(req, res) {
         });
       }
 
-      // Generate code if not provided
       let subjectCode = code;
       if (!subjectCode) {
         subjectCode = name.substring(0, 3).toUpperCase() + '-' + Math.floor(Math.random() * 1000);
@@ -841,7 +828,7 @@ async createTerm(req, res) {
     }
   }
 
-  // Delete subject
+  // Delete subject (cleans up any attached exams first)
   async deleteSubject(req, res) {
     try {
       const { schoolId, subjectId } = req.params;
@@ -860,6 +847,36 @@ async createTerm(req, res) {
           status: 'error',
           message: `Cannot delete subject. It is assigned to ${classCount} classes.`
         });
+      }
+
+      // Find and clean up any exams tied to this subject
+      const { data: exams, error: examsFetchError } = await supabaseAdmin
+        .from('exams')
+        .select('id')
+        .eq('subject_id', subjectId);
+
+      if (examsFetchError) throw examsFetchError;
+
+      const examIds = (exams || []).map(e => e.id);
+
+      if (examIds.length > 0) {
+        const { error: resultsError } = await supabaseAdmin
+          .from('exam_results')
+          .delete()
+          .in('exam_id', examIds);
+        if (resultsError) throw resultsError;
+
+        const { error: questionsError } = await supabaseAdmin
+          .from('exam_questions')
+          .delete()
+          .in('exam_id', examIds);
+        if (questionsError) throw questionsError;
+
+        const { error: examsDeleteError } = await supabaseAdmin
+          .from('exams')
+          .delete()
+          .in('id', examIds);
+        if (examsDeleteError) throw examsDeleteError;
       }
 
       const { error } = await supabaseAdmin
@@ -903,7 +920,6 @@ async createTerm(req, res) {
         });
       }
 
-      // Check if already assigned
       const { data: existing, error: checkError } = await supabaseAdmin
         .from('class_subjects')
         .select('class_id, subject_id')

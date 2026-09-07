@@ -22,5 +22,7 @@ router.get('/schools/:schoolId/exams/:examId/results', authorize('teacher', 'sch
 
 // Get student exam results
 router.get('/schools/:schoolId/students/:studentId/results', authorize('student', 'teacher', 'school_admin'), examController.getStudentExamResults);
+// Delete exam (Teacher/Admin)
+router.delete('/schools/:schoolId/exams/:examId', authorize('teacher', 'school_admin'), examController.deleteExam);
 
 module.exports = router;

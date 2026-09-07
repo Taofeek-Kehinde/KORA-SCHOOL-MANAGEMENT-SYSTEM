@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
-import { FaSpinner, FaCheck, FaTimes, FaSave, FaPlus, FaTrash, FaArrowRight } from 'react-icons/fa';
+import { FaSpinner, FaSave, FaPlus, FaTrash } from 'react-icons/fa';
 
 const ApprovalWorkflows = () => {
   const { user } = useAuth();
@@ -17,7 +17,7 @@ const ApprovalWorkflows = () => {
   const [isEnabled, setIsEnabled] = useState(true);
 
   // Fetch workflows
-  const { data: workflowsData, refetch } = useQuery({
+  const { data: workflowsData, isLoading, refetch } = useQuery({
     queryKey: ['approvalWorkflows', user?.schoolId],
     queryFn: async () => {
       const response = await api.get(`/approval-workflows/schools/${user?.schoolId}/approval-workflows`);
@@ -27,6 +27,48 @@ const ApprovalWorkflows = () => {
   });
 
   const workflows = workflowsData?.data || [];
+
+  // Load workflow data when workflows change or workflowType changes
+  useEffect(() => {
+    if (workflows.length > 0) {
+      const found = workflows.find(w => w.workflow_type === workflowType);
+      if (found) {
+        setStages(found.stages || []);
+        setIsEnabled(found.is_enabled !== undefined ? found.is_enabled : true);
+      } else {
+        // Reset to default for this workflow type
+        const defaultStages = {
+          lesson_notes: [
+            { name: 'Teacher Creates', role: 'teacher' },
+            { name: 'HOD Reviews', role: 'hod' },
+            { name: 'VP Approves', role: 'vp' }
+          ],
+          schemes_of_work: [
+            { name: 'Teacher Creates', role: 'teacher' },
+            { name: 'HOD Reviews', role: 'hod' },
+            { name: 'VP Approves', role: 'vp' }
+          ],
+          ca_scores: [
+            { name: 'Teacher Submits', role: 'teacher' },
+            { name: 'HOD Verifies', role: 'hod' },
+            { name: 'VP Approves', role: 'vp' }
+          ],
+          results: [
+            { name: 'Teacher Submits', role: 'teacher' },
+            { name: 'HOD Verifies', role: 'hod' },
+            { name: 'VP Approves', role: 'vp' },
+            { name: 'Principal Approves', role: 'principal' }
+          ]
+        };
+        setStages(defaultStages[workflowType] || [
+          { name: 'Teacher Creates', role: 'teacher' },
+          { name: 'HOD Reviews', role: 'hod' },
+          { name: 'VP Approves', role: 'vp' }
+        ]);
+        setIsEnabled(true);
+      }
+    }
+  }, [workflows, workflowType]);
 
   // Configure workflow
   const configureMutation = useMutation({
@@ -42,6 +84,10 @@ const ApprovalWorkflows = () => {
   });
 
   const handleSave = () => {
+    if (!stages || stages.length === 0) {
+      toast.error('Please add at least one stage');
+      return;
+    }
     configureMutation.mutate({
       workflowType,
       stages,
@@ -54,6 +100,10 @@ const ApprovalWorkflows = () => {
   };
 
   const handleRemoveStage = (index) => {
+    if (stages.length <= 1) {
+      toast.error('Must have at least one stage');
+      return;
+    }
     setStages(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -67,6 +117,14 @@ const ApprovalWorkflows = () => {
     { value: 'ca_scores', label: 'Continuous Assessment' },
     { value: 'results', label: 'Examination Results' }
   ];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <FaSpinner className="animate-spin text-4xl text-kora-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto">
@@ -158,7 +216,9 @@ const ApprovalWorkflows = () => {
               <div key={workflow.id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-gray-800">{workflow.workflow_type}</p>
+                    <p className="font-semibold text-gray-800">
+                      {workflowTypes.find(t => t.value === workflow.workflow_type)?.label || workflow.workflow_type}
+                    </p>
                     <p className="text-sm text-gray-500">{workflow.stages?.length || 0} stages</p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${workflow.is_enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
